@@ -17,6 +17,8 @@ This will be a all in one bot that will handle;
 - install `python`
 - create a `.venv` using ```python3 -m venv .venv``` in the terminal
 - install the requirements using ```pip install -r requirements.txt```
+- create a psql database (if running locally) using ```psql -U <username> -d postgres``` then in the terminal type ```CREATE DATABASE <DB_NAME>```, Put this information in the `.env`.
+- Next make the schema using ```bash reset.sh```
 
 # Collaborators
 
