@@ -15,7 +15,7 @@ DROP TABLE IF EXISTS "class_spells" CASCADE;
 DROP TABLE IF EXISTS "race_spells" CASCADE;
 
 CREATE TABLE "discord_server"(
-    "server_id" SMALLINT NOT NULL,
+    "server_id" BIGINT NOT NULL,
     "server_name" VARCHAR(45) NOT NULL
 );
 ALTER TABLE
@@ -25,7 +25,7 @@ CREATE TABLE "player"(
     "player_id" SMALLINT NOT NULL,
     "player_name" VARCHAR(30) NOT NULL,
     "character_id" SMALLINT NOT NULL,
-    "server_id" SMALLINT NOT NULL
+    "server_id" BIGINT NOT NULL
 );
 ALTER TABLE
     "player" ADD PRIMARY KEY("player_id");
@@ -81,8 +81,8 @@ ALTER TABLE
 CREATE TABLE "location"(
     "location_id" SMALLINT NOT NULL,
     "location_name" VARCHAR(45) NOT NULL,
-    "server_id" SMALLINT NOT NULL,
-    "channel_id" SMALLINT NOT NULL
+    "server_id" BIGINT NOT NULL,
+    "channel_id" BIGINT NOT NULL
 );
 ALTER TABLE
     "location" ADD PRIMARY KEY("location_id");

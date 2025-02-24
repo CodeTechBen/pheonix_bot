@@ -3,27 +3,10 @@
 
 from os import environ as ENV
 from dotenv import load_dotenv
-import psycopg2
 from psycopg2.extensions import connection
-from psycopg2.extras import RealDictCursor
 import discord
 from discord.ext import commands
-
-# Load environment variables
-load_dotenv()
-
-# Database connection pool
-def get_connection() -> connection:
-    """Returns a postgres connection"""
-    print("Connecting to database...")
-    conn = psycopg2.connect(
-        dbname=ENV['DB_NAME'],
-        user=ENV['DB_USER'],
-        host=ENV['DB_HOST'],
-        port=ENV['DB_PORT'],
-        cursor_factory=RealDictCursor)
-    print("Connected to database.")
-    return conn
+from db_function import get_connection, upload_server
 
 def create_bot() -> commands.Bot:
     """Initializes and returns the bot"""
@@ -33,31 +16,34 @@ def create_bot() -> commands.Bot:
 
     bot = commands.Bot(command_prefix="!", intents=intents)
 
-    # Register event handlers & commands separately
-    register_events(bot)
-    register_commands(bot)
+    conn = get_connection()
+    register_events(bot, conn)
+    register_commands(bot, conn)
 
     return bot
 
 
-def register_events(bot: commands.Bot):
+def register_events(bot: commands.Bot, conn: connection):
     """Registers event handlers for the bot"""
 
+    @bot.event
     async def on_ready():
-        print(f"Logged in as {bot.user}")
-
-    bot.event(on_ready)
+        print(f'Logged in as {bot.user}')
 
 
-def register_commands(bot: commands.Bot):
+    @bot.event
+    async def on_guild_join(ctx):
+        """Triggered when the bot joins a new server"""
+        await ctx.send(upload_server(ctx.guild, conn))
+
+
+def register_commands(bot: commands.Bot, conn: connection):
     """Registers command functions"""
 
-    async def scavenge(ctx):
-        """lets the user scavenge for shards"""
-        await ctx.send("Pong!")
-
-    bot.command()(scavenge)
-
+    @bot.command()
+    async def add_server(ctx):
+        """Manually uploads the server to the DB"""
+        await ctx.send(upload_server(ctx.guild, conn))
 
 if __name__ == "__main__":
     load_dotenv()
