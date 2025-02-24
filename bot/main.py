@@ -28,6 +28,7 @@ def register_events(bot: commands.Bot, conn: connection):
 
     @bot.event
     async def on_ready():
+        """When turned on prints message"""
         print(f'Logged in as {bot.user}')
 
 
