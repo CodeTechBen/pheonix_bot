@@ -1,0 +1,1 @@
+psql -U benjaminsmith -d phoenix_bot
