@@ -10,8 +10,9 @@ def get_connection() -> connection:
     print("Connecting to database...")
     conn = psycopg2.connect(
         dbname=ENV['DB_NAME'],
-        user=ENV['DB_USERNAME'],
-        password=ENV['DB_PASSWORD'],
+        user=ENV['DB_USER'],
+        host=ENV['DB_HOST'],
+        port=ENV['DB_PORT'],
         cursor_factory=RealDictCursor)
     print("Connected to database.")
     return conn
