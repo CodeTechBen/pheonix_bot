@@ -23,6 +23,7 @@ jobs:
 
       - name: Run Pytest if Tests Exist
         run: |
+          cd bot
           if find . -name "test_*.py" | grep .; then
             echo "Test files found. Running pytest..."
             pip install -r requirements.txt
