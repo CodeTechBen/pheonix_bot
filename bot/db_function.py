@@ -42,6 +42,7 @@ def upload_server(guild: discord.Guild, conn: connection) -> str:
         conn.commit()
         return f"Server {guild.name} (ID: {guild.id}) added to the database."
 
+
 def generate_class(guild: discord.Guild, class_name: str, is_playable: bool, conn: connection):
     """Creates a class in the Database according to user arguments"""
     print(f"Generating new class: {class_name}")
