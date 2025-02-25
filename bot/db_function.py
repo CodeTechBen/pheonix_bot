@@ -5,7 +5,6 @@ import psycopg2
 from psycopg2.extensions import connection
 from psycopg2.extras import RealDictCursor
 import discord
-
 import discord.ext
 
 
@@ -46,7 +45,7 @@ def upload_server(guild: discord.Guild, conn: connection) -> str:
 def generate_class(guild: discord.Guild, class_name: str, is_playable: bool, conn: connection):
     """Creates a class in the Database according to user arguments"""
     print(f"Generating new class: {class_name}")
-    
+
     with conn.cursor() as cursor:
         cursor.execute(
             "INSERT INTO class (class_name, is_playable, server_id) VALUES (%s, %s, %s)",
@@ -54,7 +53,7 @@ def generate_class(guild: discord.Guild, class_name: str, is_playable: bool, con
         )
         conn.commit()
         return f"Class ({class_name}) has been added to the database."
-    
+
 
 def generate_race(guild: discord.Guild, race_name: str, is_playable: bool, speed: int, conn: connection):
     """Creates a race in the Database according to user arguments"""

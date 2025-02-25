@@ -9,10 +9,10 @@ def is_valid_class(class_name: str, is_playable: bool) -> bool:
         return False
     if not isinstance(class_name, str):
         return False
-    
+
     if not isinstance(is_playable, bool):
         return False
-    
+
     if len(class_name) <= 2 or len(class_name) >  29:
         return False
     return True

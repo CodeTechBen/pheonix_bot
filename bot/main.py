@@ -54,11 +54,11 @@ def register_commands(bot: commands.Bot, conn: connection):
         if not ctx.author.guild_permissions.administrator:
             await ctx.send("You must be an admin to use this command.")
             return
-        
+
         if not is_valid_class(class_name, is_playable):
             await ctx.send("Usage: !create_class <class_name> <True/False>")
             return
-        
+
         response = generate_class(ctx.guild, class_name.title(), is_playable, conn)
         await ctx.send(response)
 
@@ -73,7 +73,7 @@ def register_commands(bot: commands.Bot, conn: connection):
         if not is_valid_class(race_name, is_playable):
             await ctx.send("Usage: !create_race <class_name> <True/False> <speed?>")
             return
-        
+
         if not isinstance(speed, int):
             return
 
