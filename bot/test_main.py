@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 from main import *
 from validation import is_valid_class
-from db_function import generate_class
+from db_function import generate_class, generate_race
 
 
 @pytest.mark.parametrize(
@@ -39,3 +39,20 @@ def test_generate_class(MockGuild, MockConnection):
     mock_conn.cursor.assert_called_once()
     mock_conn.commit.assert_called_once()
 
+
+@patch('db_function.connection')
+@patch('db_function.discord.Guild')
+def test_generate_race(MockGuild, MockConnection):
+    """Tests the generate class function"""
+    mock_guild = MagicMock()
+    mock_guild.id = 12345
+
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_conn.cursor.return_value = mock_cursor
+
+    assert generate_race(mock_guild, "Human", True, 10,
+                          mock_conn) == "Race (Human) has been added to the database."
+
+    mock_conn.cursor.assert_called_once()
+    mock_conn.commit.assert_called_once()

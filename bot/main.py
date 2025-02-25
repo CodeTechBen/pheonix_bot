@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from psycopg2.extensions import connection
 import discord
 from discord.ext import commands
-from db_function import get_connection, upload_server, generate_class
+from db_function import get_connection, upload_server, generate_class, generate_race
 from validation import is_valid_class
 
 def create_bot() -> commands.Bot:
@@ -54,11 +54,29 @@ def register_commands(bot: commands.Bot, conn: connection):
             await ctx.send("You must be an admin to use this command.")
             return
         
-        if class_name is None or is_playable is None or not is_valid_class(class_name, is_playable):
+        if not is_valid_class(class_name, is_playable):
             await ctx.send("Usage: !create_class <class_name> <True/False>")
             return
         
-        response = generate_class(ctx.guild, class_name, is_playable, conn)
+        response = generate_class(ctx.guild, class_name.title(), is_playable, conn)
+        await ctx.send(response)
+
+
+    @bot.command()
+    async def create_race(ctx, race_name: str = None, is_playable: bool = None, speed: int = 30):
+        """Creates a race in the database"""
+        if not ctx.author.guild_permissions.administrator:
+            await ctx.send("You must be an admin to use this command.")
+            return
+
+        if not is_valid_class(race_name, is_playable):
+            await ctx.send("Usage: !create_race <class_name> <True/False> <speed?>")
+            return
+        
+        if not isinstance(speed, int):
+            return
+
+        response = generate_race(ctx.guild, race_name.title(), is_playable, speed, conn)
         await ctx.send(response)
 
 if __name__ == "__main__":

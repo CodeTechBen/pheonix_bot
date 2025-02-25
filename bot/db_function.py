@@ -53,6 +53,19 @@ def generate_class(guild: discord.Guild, class_name: str, is_playable: bool, con
         )
         conn.commit()
         return f"Class ({class_name}) has been added to the database."
+    
+
+def generate_race(guild: discord.Guild, race_name: str, is_playable: bool, speed: int, conn: connection):
+    """Creates a class in the Database according to user arguments"""
+    print(f"Generating new race: {race_name}")
+
+    with conn.cursor() as cursor:
+        cursor.execute(
+            "INSERT INTO race (race_name, speed, is_playable, server_id) VALUES (%s, %s, %s, %s)",
+            (race_name, speed, is_playable, guild.id)
+        )
+        conn.commit()
+        return f"Race ({race_name}) has been added to the database."
 
 
 def close_connection(conn: connection):
