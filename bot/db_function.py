@@ -68,6 +68,28 @@ def generate_race(guild: discord.Guild, race_name: str, is_playable: bool, speed
         return f"Race ({race_name}) has been added to the database."
 
 
+def get_player_mapping(conn: connection, server_id: int) -> dict[str, int]:
+    """Returns a dictionary of player names and their DB ID number for a specific server"""
+    with conn.cursor() as cursor:
+        cursor.execute(
+            "SELECT player_name, player_id FROM player WHERE server_id = %s", (
+                server_id,)
+        )
+        return {row["player_name"]: row["player_id"] for row in cursor.fetchall()}
+    
+
+def create_player(ctx, conn: connection) -> int:
+    """Creates a player in the database and returns the player ID"""
+    with conn.cursor() as cursor:
+        cursor.execute(
+            "INSERT INTO player (player_name, server_id) VALUES (%s, %s) RETURNING player_id",
+            (ctx.author.name, ctx.guild.id)
+        )
+        player_id = cursor.fetchone()["player_id"]
+        conn.commit()
+    return player_id
+
+
 def close_connection(conn: connection):
     """Close the database connection"""
     if conn:

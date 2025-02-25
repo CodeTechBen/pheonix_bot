@@ -27,7 +27,6 @@ CREATE TABLE "server"(
 CREATE TABLE "player"(
     "player_id" SERIAL PRIMARY KEY,
     "player_name" VARCHAR(30) NOT NULL,
-    "is_admin" BOOLEAN NOT NULL,
     "server_id" BIGINT NOT NULL,
     FOREIGN KEY ("server_id") REFERENCES "server"("server_id") ON DELETE CASCADE
 );

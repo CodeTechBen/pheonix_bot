@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from psycopg2.extensions import connection
 import discord
 from discord.ext import commands
-from db_function import get_connection, upload_server, generate_class, generate_race
+from db_function import get_connection, upload_server, generate_class, generate_race, get_player_mapping, create_player
 from validation import is_valid_class
 
 def create_bot() -> commands.Bot:
@@ -79,6 +79,16 @@ def register_commands(bot: commands.Bot, conn: connection):
 
         response = generate_race(ctx.guild, race_name.title(), is_playable, speed, conn)
         await ctx.send(response)
+
+    @bot.command()
+    async def create_character(ctx, character_name: str = None, race_name: str = None, class_name: str = None):
+        """Creates a player character in the database"""
+        player_map = get_player_mapping(conn, ctx.guild.id)
+        player_name = ctx.author.name
+        if player_name in player_map.keys():
+            player_id = player_map.get(player_name)
+        else:
+            player_id = create_player(ctx, conn)
 
 if __name__ == "__main__":
     load_dotenv()
