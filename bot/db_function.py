@@ -56,7 +56,7 @@ def generate_class(guild: discord.Guild, class_name: str, is_playable: bool, con
     
 
 def generate_race(guild: discord.Guild, race_name: str, is_playable: bool, speed: int, conn: connection):
-    """Creates a class in the Database according to user arguments"""
+    """Creates a race in the Database according to user arguments"""
     print(f"Generating new race: {race_name}")
 
     with conn.cursor() as cursor:
