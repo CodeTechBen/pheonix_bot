@@ -1,163 +1,168 @@
--- Dropping all of the tables
-DROP TABLE IF EXISTS "discord_server" CASCADE;
-DROP TABLE IF EXISTS "player" CASCADE;
-DROP TABLE IF EXISTS "character" CASCADE;
-DROP TABLE IF EXISTS "race" CASCADE;
-DROP TABLE IF EXISTS "class" CASCADE;
-DROP TABLE IF EXISTS "spell_status" CASCADE;
-DROP TABLE IF EXISTS "spells" CASCADE;
-DROP TABLE IF EXISTS "location" CASCADE;
-DROP TABLE IF EXISTS "weather_assignment" CASCADE;
-DROP TABLE IF EXISTS "weather" CASCADE;
-DROP TABLE IF EXISTS "inventory" CASCADE;
+-- Dropping all tables in reverse dependency order
+DROP TABLE IF EXISTS "character_spell_assignment" CASCADE;
 DROP TABLE IF EXISTS "item" CASCADE;
-DROP TABLE IF EXISTS "class_spells" CASCADE;
-DROP TABLE IF EXISTS "race_spells" CASCADE;
+DROP TABLE IF EXISTS "inventory" CASCADE;
+DROP TABLE IF EXISTS "weather_assignment" CASCADE;
+DROP TABLE IF EXISTS "character" CASCADE;
+DROP TABLE IF EXISTS "spells" CASCADE;
+DROP TABLE IF EXISTS "settlements" CASCADE;
+DROP TABLE IF EXISTS "faction" CASCADE;
+DROP TABLE IF EXISTS "weather" CASCADE;
+DROP TABLE IF EXISTS "location" CASCADE;
+DROP TABLE IF EXISTS "element" CASCADE;
+DROP TABLE IF EXISTS "spell_status" CASCADE;
+DROP TABLE IF EXISTS "class" CASCADE;
+DROP TABLE IF EXISTS "race" CASCADE;
+DROP TABLE IF EXISTS "player" CASCADE;
+DROP TABLE IF EXISTS "server" CASCADE;
 
-CREATE TABLE "discord_server"(
+-- Server table to ensure uniqueness per Discord server
+CREATE TABLE "server"(
     "server_id" BIGINT NOT NULL,
-    "server_name" VARCHAR(45) NOT NULL
+    "server_name" VARCHAR(100) NOT NULL,
+    PRIMARY KEY ("server_id")
 );
-ALTER TABLE
-    "discord_server" ADD PRIMARY KEY("server_id");
 
+-- Player table
 CREATE TABLE "player"(
-    "player_id" SMALLINT NOT NULL,
+    "player_id" SERIAL PRIMARY KEY,
     "player_name" VARCHAR(30) NOT NULL,
-    "character_id" SMALLINT NOT NULL,
-    "server_id" BIGINT NOT NULL
+    "is_admin" BOOLEAN NOT NULL,
+    "server_id" BIGINT NOT NULL,
+    FOREIGN KEY ("server_id") REFERENCES "server"("server_id") ON DELETE CASCADE
 );
-ALTER TABLE
-    "player" ADD PRIMARY KEY("player_id");
+
+-- Core entity tables
+CREATE TABLE "race"(
+    "race_id" SERIAL PRIMARY KEY,
+    "race_name" VARCHAR(30) NOT NULL,
+    "speed" SMALLINT NOT NULL,
+    "is_playable" BOOLEAN NOT NULL,
+    "server_id" BIGINT NOT NULL,
+    FOREIGN KEY ("server_id") REFERENCES "server"("server_id") ON DELETE CASCADE
+);
+
+CREATE TABLE "class"(
+    "class_id" SERIAL PRIMARY KEY,
+    "class_name" VARCHAR(30) NOT NULL,
+    "is_playable" BOOLEAN NOT NULL,
+    "server_id" BIGINT NOT NULL,
+    FOREIGN KEY ("server_id") REFERENCES "server"("server_id") ON DELETE CASCADE
+);
+
+CREATE TABLE "spell_status"(
+    "spell_status_id" SERIAL PRIMARY KEY,
+    "status_name" VARCHAR(30) NOT NULL,
+    "status_description" VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE "element"(
+    "element_id" SERIAL PRIMARY KEY,
+    "element_name" VARCHAR(30) NOT NULL
+);
+
+CREATE TABLE "location"(
+    "location_id" SERIAL PRIMARY KEY,
+    "location_name" VARCHAR(45) NOT NULL,
+    "channel_id" BIGINT NOT NULL,
+    "server_id" BIGINT NOT NULL,
+    FOREIGN KEY ("server_id") REFERENCES "server"("server_id") ON DELETE CASCADE
+);
+
+CREATE TABLE "weather"(
+    "weather_id" SERIAL PRIMARY KEY,
+    "weather_name" VARCHAR(30) NOT NULL
+);
+
+-- Dependent tables
+CREATE TABLE "spells"(
+    "spell_id" SERIAL PRIMARY KEY,
+    "spell_name" VARCHAR(45) NOT NULL,
+    "spell_description" VARCHAR(255) NOT NULL,
+    "spell_status_id" INTEGER NOT NULL,
+    "spell_power" SMALLINT NOT NULL,
+    "element_id" INTEGER NOT NULL,
+    "mana_cost" SMALLINT NOT NULL,
+    "race_id" INTEGER NULL,
+    "class_id" INTEGER NULL,
+    "server_id" BIGINT NOT NULL,
+    FOREIGN KEY ("spell_status_id") REFERENCES "spell_status"("spell_status_id"),
+    FOREIGN KEY ("element_id") REFERENCES "element"("element_id"),
+    FOREIGN KEY ("race_id") REFERENCES "race"("race_id"),
+    FOREIGN KEY ("class_id") REFERENCES "class"("class_id"),
+    FOREIGN KEY ("server_id") REFERENCES "server"("server_id") ON DELETE CASCADE
+);
+
+CREATE TABLE "faction"(
+    "faction_id" SERIAL PRIMARY KEY,
+    "faction_name" VARCHAR(45) NOT NULL,
+    "faction_description" VARCHAR(100) NOT NULL,
+    "location_id" INTEGER NOT NULL,
+    "server_id" BIGINT NOT NULL,
+    FOREIGN KEY ("location_id") REFERENCES "location"("location_id"),
+    FOREIGN KEY ("server_id") REFERENCES "server"("server_id") ON DELETE CASCADE
+);
+
+CREATE TABLE "settlements"(
+    "settlement_id" SERIAL PRIMARY KEY,
+    "settlement_name" VARCHAR(45) NOT NULL,
+    "location_id" INTEGER NOT NULL,
+    "server_id" BIGINT NOT NULL,
+    FOREIGN KEY ("location_id") REFERENCES "location"("location_id"),
+    FOREIGN KEY ("server_id") REFERENCES "server"("server_id") ON DELETE CASCADE
+);
 
 CREATE TABLE "character"(
-    "character_id" SMALLINT NOT NULL,
+    "character_id" SERIAL PRIMARY KEY,
     "character_name" VARCHAR(30) NOT NULL,
-    "race_id" SMALLINT NOT NULL,
-    "class_id" SMALLINT NOT NULL,
-    "location_id" SMALLINT NOT NULL,
+    "race_id" INTEGER NOT NULL,
+    "class_id" INTEGER NOT NULL,
+    "location_id" INTEGER NOT NULL,
     "experience" INTEGER NOT NULL,
     "health" SMALLINT NOT NULL,
     "mana" SMALLINT NOT NULL,
     "shards" BIGINT NOT NULL,
-    "inventory_id" BIGINT NOT NULL
-);
-ALTER TABLE
-    "character" ADD PRIMARY KEY("character_id");
-
-CREATE TABLE "race"(
-    "race_id" SMALLINT NOT NULL,
-    "race_name" VARCHAR(30) NOT NULL,
-    "speed" BIGINT NOT NULL
-);
-ALTER TABLE
-    "race" ADD PRIMARY KEY("race_id");
-
-CREATE TABLE "class"(
-    "class_id" SMALLINT NOT NULL,
-    "class_name" VARCHAR(30) NOT NULL
-);
-ALTER TABLE
-    "class" ADD PRIMARY KEY("class_id");
-
-CREATE TABLE "spell_status"(
-    "spell_status_id" SMALLINT NOT NULL,
-    "status_name" VARCHAR(30) NOT NULL,
-    "status_description" VARCHAR(255) NOT NULL
-);
-ALTER TABLE
-    "spell_status" ADD PRIMARY KEY("spell_status_id");
-
-CREATE TABLE "spells"(
-    "spell_id" SMALLINT NOT NULL,
-    "spell_name" VARCHAR(45) NOT NULL,
-    "spell_description" VARCHAR(255) NOT NULL,
-    "spell_status_id" SMALLINT NOT NULL,
-    "spell_power" SMALLINT NOT NULL
-);
-ALTER TABLE
-    "spells" ADD PRIMARY KEY("spell_id");
-
-CREATE TABLE "location"(
-    "location_id" SMALLINT NOT NULL,
-    "location_name" VARCHAR(45) NOT NULL,
+    "last_scavenge" TIMESTAMP NOT NULL,
+    "player_id" INTEGER NOT NULL,
+    "selected_character" BOOLEAN NOT NULL,
+    "faction_id" INTEGER NOT NULL,
     "server_id" BIGINT NOT NULL,
-    "channel_id" BIGINT NOT NULL
+    FOREIGN KEY ("race_id") REFERENCES "race"("race_id"),
+    FOREIGN KEY ("class_id") REFERENCES "class"("class_id"),
+    FOREIGN KEY ("location_id") REFERENCES "location"("location_id"),
+    FOREIGN KEY ("player_id") REFERENCES "player"("player_id"),
+    FOREIGN KEY ("faction_id") REFERENCES "faction"("faction_id"),
+    FOREIGN KEY ("server_id") REFERENCES "server"("server_id") ON DELETE CASCADE
 );
-ALTER TABLE
-    "location" ADD PRIMARY KEY("location_id");
 
 CREATE TABLE "weather_assignment"(
-    "weather_assignment_id" SMALLINT NOT NULL,
-    "location_id" SMALLINT NOT NULL,
-    "weather_id" SMALLINT NOT NULL
+    "weather_assignment_id" SERIAL PRIMARY KEY,
+    "location_id" INTEGER NOT NULL,
+    "weather_id" INTEGER NOT NULL,
+    FOREIGN KEY ("location_id") REFERENCES "location"("location_id"),
+    FOREIGN KEY ("weather_id") REFERENCES "weather"("weather_id")
 );
-ALTER TABLE
-    "weather_assignment" ADD PRIMARY KEY("weather_assignment_id");
-
-CREATE TABLE "weather"(
-    "weather_id" SMALLINT NOT NULL,
-    "weather" VARCHAR(30) NOT NULL
-);
-ALTER TABLE
-    "weather" ADD PRIMARY KEY("weather_id");
 
 CREATE TABLE "inventory"(
-    "inventory_id" SMALLINT NOT NULL,
+    "inventory_id" SERIAL PRIMARY KEY,
     "inventory_name" VARCHAR(30) NOT NULL,
-    "character_id" SMALLINT NOT NULL
+    "character_id" INTEGER NOT NULL,
+    "is_shop" BOOLEAN NOT NULL,
+    FOREIGN KEY ("character_id") REFERENCES "character"("character_id")
 );
-ALTER TABLE
-    "inventory" ADD PRIMARY KEY("inventory_id");
+
 CREATE TABLE "item"(
-    "item_id" SMALLINT NOT NULL,
-    "item_name" VARCHAR(255) NOT NULL,
+    "item_id" SERIAL PRIMARY KEY,
+    "item_name" VARCHAR(30) NOT NULL,
     "value" SMALLINT NOT NULL,
-    "inventory_id" SMALLINT NOT NULL
+    "inventory_id" INTEGER NOT NULL,
+    FOREIGN KEY ("inventory_id") REFERENCES "inventory"("inventory_id")
 );
-ALTER TABLE
-    "item" ADD PRIMARY KEY("item_id");
-CREATE TABLE "class_spells"(
-    "class_spell_id" SMALLINT NOT NULL,
-    "class_id" SMALLINT NOT NULL,
-    "spell_id" SMALLINT NOT NULL
+
+CREATE TABLE "character_spell_assignment"(
+    "character_spell_assignment_id" SERIAL PRIMARY KEY,
+    "character_id" INTEGER NOT NULL,
+    "spell_id" INTEGER NOT NULL,
+    FOREIGN KEY ("character_id") REFERENCES "character"("character_id"),
+    FOREIGN KEY ("spell_id") REFERENCES "spells"("spell_id")
 );
-ALTER TABLE
-    "class_spells" ADD PRIMARY KEY("class_spell_id");
-CREATE TABLE "race_spells"(
-    "race_spells_id" SMALLINT NOT NULL,
-    "race_id" SMALLINT NOT NULL,
-    "spell_id" SMALLINT NOT NULL
-);
-ALTER TABLE
-    "race_spells" ADD PRIMARY KEY("race_spells_id");
-ALTER TABLE
-    "weather_assignment" ADD CONSTRAINT "weather_assignment_weather_id_foreign" FOREIGN KEY("weather_id") REFERENCES "weather"("weather_id");
-ALTER TABLE
-    "class_spells" ADD CONSTRAINT "class_spells_spell_id_foreign" FOREIGN KEY("spell_id") REFERENCES "spells"("spell_id");
-ALTER TABLE
-    "item" ADD CONSTRAINT "item_inventory_id_foreign" FOREIGN KEY("inventory_id") REFERENCES "inventory"("inventory_id");
-ALTER TABLE
-    "inventory" ADD CONSTRAINT "inventory_character_id_foreign" FOREIGN KEY("character_id") REFERENCES "character"("character_id");
-ALTER TABLE
-    "weather_assignment" ADD CONSTRAINT "weather_assignment_location_id_foreign" FOREIGN KEY("location_id") REFERENCES "location"("location_id");
-ALTER TABLE
-    "player" ADD CONSTRAINT "player_server_id_foreign" FOREIGN KEY("server_id") REFERENCES "discord_server"("server_id");
-ALTER TABLE
-    "character" ADD CONSTRAINT "character_location_id_foreign" FOREIGN KEY("location_id") REFERENCES "location"("location_id");
-ALTER TABLE
-    "player" ADD CONSTRAINT "player_character_id_foreign" FOREIGN KEY("character_id") REFERENCES "character"("character_id");
-ALTER TABLE
-    "class_spells" ADD CONSTRAINT "class_spells_class_id_foreign" FOREIGN KEY("class_id") REFERENCES "class"("class_id");
-ALTER TABLE
-    "race_spells" ADD CONSTRAINT "race_spells_race_id_foreign" FOREIGN KEY("race_id") REFERENCES "race"("race_id");
-ALTER TABLE
-    "race_spells" ADD CONSTRAINT "race_spells_spell_id_foreign" FOREIGN KEY("spell_id") REFERENCES "spells"("spell_id");
-ALTER TABLE
-    "location" ADD CONSTRAINT "location_server_id_foreign" FOREIGN KEY("server_id") REFERENCES "discord_server"("server_id");
-ALTER TABLE
-    "character" ADD CONSTRAINT "character_race_id_foreign" FOREIGN KEY("race_id") REFERENCES "race"("race_id");
-ALTER TABLE
-    "spells" ADD CONSTRAINT "spells_spell_status_id_foreign" FOREIGN KEY("spell_status_id") REFERENCES "spell_status"("spell_status_id");
-ALTER TABLE
-    "character" ADD CONSTRAINT "character_class_id_foreign" FOREIGN KEY("class_id") REFERENCES "class"("class_id");

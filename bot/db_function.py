@@ -28,13 +28,13 @@ def upload_server(guild: discord.Guild, conn: connection):
     with conn.cursor() as cursor:
         # Check if the guild_id is already in the discord_server table
         cursor.execute(
-            "SELECT 1 FROM discord_server WHERE server_id = %s", (guild.id,))
+            "SELECT 1 FROM server WHERE server_id = %s", (guild.id,))
         exists = cursor.fetchone()
 
         if exists:
             return f"Server {guild.name} (ID: {guild.id}) already exists in the database."
 
-        cursor.execute("INSERT INTO discord_server (server_id, server_name) VALUES (%s, %s)",
+        cursor.execute("INSERT INTO server (server_id, server_name) VALUES (%s, %s)",
                         (guild.id, guild.name))
         conn.commit()
         return f"Server {guild.name} (ID: {guild.id}) added to the database."
