@@ -47,6 +47,7 @@ def register_commands(bot: commands.Bot, conn: connection):
         """Manually uploads the server to the DB"""
         await ctx.send(upload_server(ctx.guild, conn))
 
+
     @bot.command()
     async def create_class(ctx, class_name: str = None, is_playable: bool = None):
         """Creates a class in the database"""
