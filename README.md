@@ -20,9 +20,12 @@ This will be a all in one bot that will handle;
 - install the requirements using ```pip install -r requirements.txt```
 - create a psql database (if running locally) using ```psql -U <username> -d postgres``` then in the terminal type ```CREATE DATABASE <DB_NAME>```, Put this information in the `.env`.
 - Next make the schema using ```bash reset.sh```
+- Seed the database using ```bash seed.sh```
 ## Discord BOT
 - get the secret token for your discord bot from developer [portal](https://discord.com/developers/applications/)
 - In your `.env` put `DISCORD_TOKEN=` and then put your secret token.
+
+If your running this locally on your machine you can simply use the command ```python3 main.py``` now.
 
 # Collaborators
 
