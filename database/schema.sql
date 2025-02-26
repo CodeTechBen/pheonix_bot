@@ -105,6 +105,7 @@ CREATE TABLE "faction"(
 CREATE TABLE "settlements"(
     "settlement_id" SERIAL PRIMARY KEY,
     "settlement_name" VARCHAR(45) NOT NULL,
+    "thread_id" BIGINT NOT NULL,
     "location_id" INTEGER NOT NULL,
     "server_id" BIGINT NOT NULL,
     FOREIGN KEY ("location_id") REFERENCES "location"("location_id"),

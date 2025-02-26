@@ -6,8 +6,18 @@ from dotenv import load_dotenv
 from psycopg2.extensions import connection
 import discord
 from discord.ext import commands
-from db_function import get_connection, upload_server, generate_class, generate_race, get_player_mapping, create_player
-from validation import is_valid_class
+from db_function import (get_connection, 
+                         upload_server, 
+                         generate_class, 
+                         generate_race, 
+                         get_player_mapping, 
+                         create_player,
+                         get_location_mapping,
+                         generate_location,
+                         get_settlement_mapping,
+                         generate_settlement)
+from validation import (is_valid_class, 
+                        is_valid_settlement)
 
 def create_bot() -> commands.Bot:
     """Initializes and returns the bot"""
@@ -89,6 +99,35 @@ def register_commands(bot: commands.Bot, conn: connection):
             player_id = player_map.get(player_name)
         else:
             player_id = create_player(ctx, conn)
+    
+    @bot.command()
+    async def create_settlement(ctx):
+        """Sets a channel as a location"""
+        if not ctx.author.guild_permissions.administrator:
+            await ctx.send("You must be an admin to use this command.")
+            return
+        is_valid, message = is_valid_settlement(ctx)
+        if not is_valid:
+            await ctx.send(message)
+            return
+
+        await ctx.send(
+            f"Forum Channel: **{ctx.channel.parent.name}** (ID: `{ctx.channel.parent.id}`)\n"
+            f"Thread: **{ctx.channel.name}** (ID: `{ctx.channel.id}`)"
+        )
+
+        location_map = get_location_mapping(conn, ctx.guild.id)
+        if ctx.channel.parent.id not in location_map.keys():
+            print(
+                f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.parent.id}")
+            await ctx.send(generate_location(ctx, conn))
+            print(f"Generated Location {ctx.channel.parent.name}")
+
+        settlement_map = get_settlement_mapping(conn, ctx.guild.id)
+        if ctx.channel.id not in settlement_map.keys():
+            await ctx.send(generate_settlement(ctx, conn, location_map))
+
+        
 
 if __name__ == "__main__":
     load_dotenv()

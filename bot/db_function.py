@@ -90,6 +90,52 @@ def create_player(ctx, conn: connection) -> int:
     return player_id
 
 
+def get_location_mapping(conn: connection, server_id: int) -> dict[int, int]:
+    """Gets the channel id and the location id in a dictionary"""
+    with conn.cursor() as cursor:
+        cursor.execute(
+            "SELECT channel_id, location_id FROM location WHERE server_id = %s", (server_id,)
+        )
+        return {row["channel_id"]: row["location_id"] for row in cursor.fetchall()}
+    
+
+def generate_location(ctx, conn: connection):
+    """Generates a location based on the channel this command is run in"""
+    with conn.cursor() as cursor:
+        cursor.execute(
+            """INSERT INTO location (location_name, channel_id, server_id)
+            VALUES (%s, %s, %s)""", (
+                ctx.channel.parent.name, ctx.channel.parent.id, ctx.guild.id
+                )
+        )
+        conn.commit()
+        return f'location {ctx.channel.parent.name} added to the database'
+    
+
+def get_settlement_mapping(conn: connection, server_id: int) -> dict:
+    """Gets the thread id and settlement id in a dictionary"""
+    with conn.cursor() as cursor:
+        cursor.execute(
+            "SELECT thread_id, settlement_id FROM settlements WHERE server_id = %s", (
+                server_id,)
+        )
+        return {row["thread_id"]: row["settlement_id"] for row in cursor.fetchall()}
+    
+    
+def generate_settlement(ctx, conn: connection, location_map: dict[int,int]):
+    """Generates a settlement based on the thread id this command is run in."""
+    location_id = location_map[ctx.channel.parent.id]
+    with conn.cursor() as cursor:
+        cursor.execute(
+            """INSERT INTO settlements (settlement_name, thread_id, location_id, server_id)
+            VALUES (%s, %s, %s, %s)""", (
+                ctx.channel.name, ctx.channel.id, location_id, ctx.guild.id
+            )
+        )
+        conn.commit()
+        return f'settlement {ctx.channel.name} added to database'
+    
+
 def close_connection(conn: connection):
     """Close the database connection"""
     if conn:
