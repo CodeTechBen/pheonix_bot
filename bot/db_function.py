@@ -1,11 +1,11 @@
 """Defines the functions that effect the database"""
 from os import environ as ENV
-import discord.ext.commands
 import psycopg2
 from psycopg2.extensions import connection
 from psycopg2.extras import RealDictCursor
 import discord
 import discord.ext
+import discord.ext.commands
 
 
 def get_connection() -> connection:
@@ -55,7 +55,11 @@ def generate_class(guild: discord.Guild, class_name: str, is_playable: bool, con
         return f"Class ({class_name}) has been added to the database."
 
 
-def generate_race(guild: discord.Guild, race_name: str, is_playable: bool, speed: int, conn: connection):
+def generate_race(guild: discord.Guild,
+                  race_name: str,
+                  is_playable: bool,
+                  speed: int,
+                  conn: connection):
     """Creates a race in the Database according to user arguments"""
     print(f"Generating new race: {race_name}")
 
@@ -76,7 +80,7 @@ def get_player_mapping(conn: connection, server_id: int) -> dict[str, int]:
                 server_id,)
         )
         return {row["player_name"]: row["player_id"] for row in cursor.fetchall()}
-    
+
 
 def create_player(ctx, conn: connection) -> int:
     """Creates a player in the database and returns the player ID"""
@@ -97,7 +101,7 @@ def get_location_mapping(conn: connection, server_id: int) -> dict[int, int]:
             "SELECT channel_id, location_id FROM location WHERE server_id = %s", (server_id,)
         )
         return {row["channel_id"]: row["location_id"] for row in cursor.fetchall()}
-    
+
 
 def generate_location(ctx, conn: connection):
     """Generates a location based on the channel this command is run in"""
@@ -110,7 +114,7 @@ def generate_location(ctx, conn: connection):
         )
         conn.commit()
         return f'location {ctx.channel.parent.name} added to the database'
-    
+
 
 def get_settlement_mapping(conn: connection, server_id: int) -> dict:
     """Gets the thread id and settlement id in a dictionary"""
@@ -120,8 +124,8 @@ def get_settlement_mapping(conn: connection, server_id: int) -> dict:
                 server_id,)
         )
         return {row["thread_id"]: row["settlement_id"] for row in cursor.fetchall()}
-    
-    
+
+
 def generate_settlement(ctx, conn: connection, location_map: dict[int,int]):
     """Generates a settlement based on the thread id this command is run in."""
     location_id = location_map[ctx.channel.parent.id]
@@ -134,7 +138,7 @@ def generate_settlement(ctx, conn: connection, location_map: dict[int,int]):
         )
         conn.commit()
         return f'settlement {ctx.channel.name} added to database'
-    
+
 
 def close_connection(conn: connection):
     """Close the database connection"""
