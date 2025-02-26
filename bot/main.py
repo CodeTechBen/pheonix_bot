@@ -125,7 +125,7 @@ def register_commands(bot: commands.Bot, conn: connection):
                 f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.parent.id}")
             await ctx.send(generate_location(ctx, conn))
             print(f"Generated Location {ctx.channel.parent.name}")
-
+        location_map = get_location_mapping(conn, ctx.guild.id)
         settlement_map = get_settlement_mapping(conn, ctx.guild.id)
         if ctx.channel.id not in settlement_map.keys():
             await ctx.send(generate_settlement(ctx, conn, location_map))
