@@ -140,6 +140,72 @@ def generate_settlement(ctx, conn: connection, location_map: dict[int,int]):
         return f'settlement {ctx.channel.name} added to database'
 
 
+def get_character_mapping(conn: connection, player_id: int) -> dict[int, int]:
+    """Gets a dictionary for {character_name : character_id} for a specific player"""
+    with conn.cursor() as cursor:
+        cursor.execute(
+            """SELECT character_name, character_id
+            FROM character
+            WHERE player_id = %s""", (player_id,)
+        )
+        return {row['character_name']: row['character_id'] for row in cursor.fetchall()}
+
+
+def get_race_map(conn: connection, server_id: int) -> dict[str: int]:
+    """Gets a dictionary of {race_name: race_id}"""
+    with conn.cursor() as cursor:
+        cursor.execute("""SELECT race_name, race_id
+                       FROM race
+                       WHERE server_id = %s AND is_playable = TRUE""", (server_id,)
+        )
+        return {row['race_name']: row['race_id'] for row in cursor.fetchall()}
+
+
+def get_class_map(conn: connection, server_id: int) -> dict[str: int]:
+    """Gets a dictionary of {race_name: race_id}"""
+    with conn.cursor() as cursor:
+        cursor.execute("""SELECT class_name, class_id
+                       FROM class
+                       WHERE server_id = %s AND is_playable = TRUE""", (server_id,)
+                       )
+        return {row['class_name']: row['class_id'] for row in cursor.fetchall()}
+
+
+def generate_character(conn: connection,
+                       ctx,
+                       character_name: str,
+                       race_id: int,
+                       class_id: int,
+                       player_id: int,
+                       faction_id=None) -> str:
+    """Generates a new character"""
+
+    with conn.cursor() as cursor:
+        # Deselect previous character for this player
+        cursor.execute(
+            """UPDATE character
+               SET selected_character = False
+               WHERE player_id = %s AND server_id = %s""",
+            (player_id, ctx.guild.id)
+        )
+
+        # Insert new character with defaults
+        cursor.execute(
+            """INSERT INTO character (character_name,
+                                    race_id,
+                                    class_id,
+                                    player_id,
+                                    faction_id,
+                                    server_id)
+               VALUES (%s, %s, %s, %s, %s, %s)""",
+            (character_name, race_id, class_id,
+             player_id, faction_id, ctx.guild.id)
+        )
+
+        conn.commit()
+        return f'{character_name} has been made and selected.'
+
+
 def close_connection(conn: connection):
     """Close the database connection"""
     if conn:

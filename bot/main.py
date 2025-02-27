@@ -15,7 +15,11 @@ from db_function import (get_connection,
                          get_location_mapping,
                          generate_location,
                          get_settlement_mapping,
-                         generate_settlement)
+                         generate_settlement,
+                         get_character_mapping,
+                         get_race_map,
+                         get_class_map,
+                         generate_character)
 from validation import (is_valid_class,
                         is_valid_settlement)
 
@@ -90,6 +94,7 @@ def register_commands(bot: commands.Bot, conn: connection):
         response = generate_race(ctx.guild, race_name.title(), is_playable, speed, conn)
         await ctx.send(response)
 
+
     @bot.command()
     async def create_character(ctx,
                                character_name: str = None,
@@ -102,6 +107,22 @@ def register_commands(bot: commands.Bot, conn: connection):
             player_id = player_map.get(player_name)
         else:
             player_id = create_player(ctx, conn)
+
+        character_map = get_character_mapping(conn, player_id)
+        if character_name in character_map.keys():
+            await ctx.send(f'{character_name} already exists, please choose a new name.')
+            return
+
+        race_map = get_race_map(conn, ctx.guild.id)
+        class_map = get_class_map(conn, ctx.guild.id)
+        race_id = race_map.get(race_name, None)
+        class_id = class_map.get(class_name, None)
+        if character_name and race_id and class_id:
+            response = generate_character(conn, ctx, character_name, race_id, class_id, player_id)
+            await ctx.send(response)
+        else:
+            await ctx.send("Invalid character name, race or class. ")
+
 
     @bot.command()
     async def create_settlement(ctx):
