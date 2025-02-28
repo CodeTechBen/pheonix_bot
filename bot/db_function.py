@@ -171,6 +171,94 @@ def get_class_map(conn: connection, server_id: int) -> dict[str: int]:
         return {row['class_name']: row['class_id'] for row in cursor.fetchall()}
 
 
+def get_element_map(conn: connection) -> dict[str: int]:
+    """gets a dictionary of {element_name: element_id}"""
+    with conn.cursor() as cursor:
+        cursor.execute("""SELECT element_name, element_id
+                       FROM element""")
+        return {row['element_name']: row['element_id'] for row in cursor.fetchall()}
+
+
+def get_spell_status_map(conn: connection) -> dict[str: int]:
+    """Gets a dictionary of {spell_status_name: spell_status_id}"""
+    with conn.cursor() as cursor:
+        cursor.execute("""SELECT status_name, spell_status_id
+                      FROM spell_status""")
+        return {row['status_name']: row['spell_status_id'] for row in cursor.fetchall()}
+
+
+def get_spell_type_map(conn: connection):
+    """Gets a dictionary of spell types {spell_type_id: spell_type_name}"""
+    with conn.cursor() as cursor:
+        cursor.execute("""SELECT spell_type_id, spell_type_name
+                       FROM spell_type""")
+        return {row['spell_type_id']: row['spell_type_name'] for row in cursor.fetchall()}
+
+
+def generate_spell(conn: connection,
+                   server_id: int,
+                   spell_name: str,
+                   spell_description: str,
+                   spell_power: int,
+                   mana_cost: int,
+                   cooldown: int,
+                   scaling_factor: float,
+                   spell_type_id: int,
+                   element_id: int,
+                   spell_status_id: int,
+                   spell_status_chance: int,
+                   spell_duration: int,
+                   class_id: int = None,
+                   race_id: int = None):
+    """Inserts a new spell into the database and assigns its status."""
+    try:
+        with conn.cursor() as cursor:
+            # Insert spell into spells table
+            spell_sql = """
+            INSERT INTO spells (spell_name, spell_description, spell_power, mana_cost, cooldown, scaling_factor, 
+                                spell_type_id, element_id, class_id, race_id, server_id) 
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) 
+            RETURNING spell_id;
+            """
+            spell_values = (spell_name,
+                            spell_description,
+                            spell_power,
+                            mana_cost,
+                            cooldown,
+                            scaling_factor,
+                            spell_type_id,
+                            element_id,
+                            class_id,
+                            race_id,
+                            server_id)
+
+            cursor.execute(spell_sql, spell_values)
+            spell_id = cursor.fetchone().get('spell_id')
+
+            if spell_id is None:
+                conn.rollback()
+                return "❌ Error: Spell creation failed. Please try again."
+
+            # Insert into spell_status_spell_assignment table
+            status_sql = """
+            INSERT INTO spell_status_spell_assignment (spell_id, spell_status_id, chance, duration)
+            VALUES (%s, %s, %s, %s);
+            """
+            status_values = (spell_id, spell_status_id, spell_status_chance, spell_duration)
+
+            cursor.execute(status_sql, status_values)
+
+            # Commit transaction if everything is successful
+            conn.commit()
+
+        return f"✨ Spell `{spell_name}` has been created!"
+
+    except Exception as e:
+        conn.rollback()
+        return f"❌ Error: {str(e)}"
+
+
+
 def generate_character(conn: connection,
                        ctx,
                        character_name: str,
