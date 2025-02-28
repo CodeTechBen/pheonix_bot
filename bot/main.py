@@ -327,7 +327,8 @@ def register_commands(bot: commands.Bot, conn: connection):
 
             if spell.get('status_name'):
                 embed.add_field(
-                    name="Status Effect", value=f"{spell.get('status_name')} ({spell.get('chance')}% for {spell.get('duration')} turns)", inline=False)
+                    name="Status Effect",
+                    value=f"{spell.get('status_name')} ({spell.get('chance')}% for {spell.get('duration')} turns)", inline=False)
 
             embed.set_footer(text=f"Spell ID: {spell.get('spell_id')}")
             await ctx.send(embed=embed)

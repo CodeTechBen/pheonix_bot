@@ -34,10 +34,10 @@ def get_potential_player_spells(conn: connection, ctx) -> list[dict]:
         """
         cursor.execute(query, (ctx.author.name,))
         return cursor.fetchall()
-    
+
 
 def add_spell_to_character(conn: connection, ctx, selected_spell_id):
-
+    """Adds a spell to a characters assigned spells"""
     # Add spell to character
     with conn.cursor() as cursor:
         query = """
@@ -50,7 +50,8 @@ def add_spell_to_character(conn: connection, ctx, selected_spell_id):
                 """
         cursor.execute(query, (selected_spell_id, ctx.author.name))
         conn.commit()
-    
+
+
 def get_equipped_spells(conn: connection, ctx) -> list[dict]:
     """Checks the last equipped spells"""
     query = """
