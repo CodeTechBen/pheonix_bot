@@ -1,5 +1,6 @@
 -- Insert default spell statuses
 INSERT INTO spell_status (status_name, status_description) VALUES
+('None', 'No special status effect'),
 ('Paralyze', 'The target can`t move'),
 ('Frozen', 'The target can`t move.'),
 ('Burning', 'The target takes damage over time.'),
@@ -11,6 +12,7 @@ INSERT INTO spell_status (status_name, status_description) VALUES
 
 -- Insert default elements
 INSERT INTO element (element_name) VALUES
+('Physical'),
 ('Fire'),
 ('Water'),
 ('Earth'),
@@ -46,3 +48,12 @@ INSERT INTO weather (weather_name) VALUES
 ('Volcanic Eruption'),
 ('Tectonic Shifts'),
 ('Incursion');
+
+
+-- default spell types
+INSERT INTO spell_type (spell_type_name) VALUES
+('Single Target'),
+('Area of Effect'),
+('Buff'),
+('Debuff'),
+('Passive');

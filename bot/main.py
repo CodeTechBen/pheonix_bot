@@ -19,9 +19,15 @@ from db_function import (get_connection,
                          get_character_mapping,
                          get_race_map,
                          get_class_map,
-                         generate_character)
+                         get_spell_type_map,
+                         generate_character,
+                         generate_spell,
+                         get_element_map,
+                         get_spell_status_map)
 from validation import (is_valid_class,
                         is_valid_settlement)
+from utils import (create_embed,
+                   get_input)
 
 def create_bot() -> commands.Bot:
     """Initializes and returns the bot"""
@@ -150,6 +156,92 @@ def register_commands(bot: commands.Bot, conn: connection):
         settlement_map = get_settlement_mapping(conn, ctx.guild.id)
         if ctx.channel.id not in settlement_map.keys():
             await ctx.send(generate_settlement(ctx, conn, location_map))
+
+    @bot.command()
+    async def create_spell(ctx):
+        """Command to generate a spell"""
+        if not ctx.author.guild_permissions.administrator:
+            await ctx.send('You must be an admin to use this command.')
+            return
+
+        spell_name = await get_input(ctx, bot, "📝 Enter the spell name:")
+        if not spell_name:
+            return
+
+        spell_description = await get_input(ctx, bot, "📖 Enter spell description:")
+        if not spell_description:
+            return
+
+        spell_power = await get_input(ctx, bot, "💥 Enter spell power (1-100):", int)
+        if spell_power is None:
+            return
+
+        mana_cost = await get_input(ctx, bot, "🔋 Enter mana cost:", int)
+        if mana_cost is None:
+            return
+
+        cooldown = await get_input(ctx, bot, "⏳ Enter cooldown (in turns):", int, True)
+        if cooldown is None:
+            return
+
+        scaling_factor = await get_input(ctx, bot, "🎚️ Enter scaling factor (0.1 - 2.0):", float)
+        if scaling_factor is None:
+            return
+
+        # Fetch spell types
+        spell_types = get_spell_type_map(conn)
+        if not spell_types:
+            await ctx.send("❌ No spell types found in the database.")
+            return
+
+        await ctx.send(embed=create_embed(
+            "📜 Spell Types", "Available spell types:", spell_types, discord.Color.blue()))
+        spell_type_id = await get_input(ctx, bot, "⚡ Enter the **ID** of the spell type:", int)
+        if spell_type_id is None or spell_type_id not in spell_types:
+            await ctx.send("❌ Invalid spell type ID. Try again.")
+            return
+
+        # Fetch Elements
+        element_map = get_element_map(conn)
+        await ctx.send(embed=create_embed(
+            "🔥 Elements", "Available Elements", element_map, discord.Color.red()))
+        element_id = await get_input(ctx, bot, "🔥 Enter the **ID** of the element:", int)
+
+        # Fetch available classes
+        classes = get_class_map(conn, ctx.guild.id)
+        await ctx.send(embed=create_embed(
+            "🛡️ Classes", "Available classes:", classes, discord.Color.green()))
+        class_id = await get_input(
+            ctx, bot, "⚔️ Enter the **ID** of the class (or `0` if none):", int, True)
+        class_id = None if class_id == 0 else class_id
+
+        # Fetch available races
+        races = get_race_map(conn, ctx.guild.id)
+        await ctx.send(embed=create_embed(
+            "🧬 Races", "Available races:", races, discord.Color.purple()))
+        race_id = await get_input(
+            ctx, bot, "🧬 Enter the **ID** of the race (or `0` if none):", int, True)
+        race_id = None if race_id == 0 else race_id
+
+        # Fetch spell statuses
+        spell_statuses = get_spell_status_map(conn)
+        await ctx.send(embed=create_embed("🌀 Spell Status Effects",
+                                        "Available status effects:",
+                                        spell_statuses,
+                                        discord.Color.purple()))
+        spell_status_id = await get_input(
+            ctx, bot, "🌀 Enter the **ID** of the spell status effect:", int, True)
+        spell_status_chance = await get_input(ctx, bot, r"% chance of status condition!", int)
+        spell_duration = await get_input(ctx, bot, "Duration of status condition (in turns)", int)
+
+        # Generate the spell
+        response = generate_spell(
+            conn, ctx.guild.id, spell_name, spell_description, spell_power,
+            mana_cost, cooldown, scaling_factor, spell_type_id, element_id,
+            spell_status_id, spell_status_chance, spell_duration, class_id, race_id
+        )
+        await ctx.send(response)
+
 
 
 if __name__ == "__main__":

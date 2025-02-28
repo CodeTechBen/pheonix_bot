@@ -15,6 +15,8 @@ DROP TABLE IF EXISTS "class" CASCADE;
 DROP TABLE IF EXISTS "race" CASCADE;
 DROP TABLE IF EXISTS "player" CASCADE;
 DROP TABLE IF EXISTS "server" CASCADE;
+DROP TABLE IF EXISTS "spell_type" CASCADE;
+DROP TABLE IF EXISTS "spell_status_spell_assignment" CASCADE;
 
 -- Server table to ensure uniqueness per Discord server
 CREATE TABLE "server"(
@@ -73,24 +75,32 @@ CREATE TABLE "weather"(
     "weather_name" VARCHAR(30) NOT NULL
 );
 
+CREATE TABLE "spell_type" (
+    "spell_type_id" SERIAL PRIMARY KEY,
+    "spell_type_name" VARCHAR(30) NOT NULL
+);
+
 -- Dependent tables
 CREATE TABLE "spells"(
     "spell_id" SERIAL PRIMARY KEY,
     "spell_name" VARCHAR(45) NOT NULL,
     "spell_description" VARCHAR(255) NOT NULL,
-    "spell_status_id" INTEGER NOT NULL,
     "spell_power" SMALLINT NOT NULL,
-    "element_id" INTEGER NOT NULL,
     "mana_cost" SMALLINT NOT NULL,
+    "cooldown" SMALLINT NOT NULL DEFAULT 0,
+    "scaling_factor" DECIMAL(3,2) NOT NULL DEFAULT 1.00,
+    "spell_type_id" INTEGER NOT NULL DEFAULT 1,
     "race_id" INTEGER NULL,
     "class_id" INTEGER NULL,
+    "element_id" INTEGER NOT NULL,
     "server_id" BIGINT NOT NULL,
-    FOREIGN KEY ("spell_status_id") REFERENCES "spell_status"("spell_status_id"),
-    FOREIGN KEY ("element_id") REFERENCES "element"("element_id"),
+    FOREIGN KEY ("spell_type_id") REFERENCES "spell_type"("spell_type_id"),
     FOREIGN KEY ("race_id") REFERENCES "race"("race_id"),
     FOREIGN KEY ("class_id") REFERENCES "class"("class_id"),
+    FOREIGN KEY ("element_id") REFERENCES "element"("element_id"),
     FOREIGN KEY ("server_id") REFERENCES "server"("server_id") ON DELETE CASCADE
 );
+
 
 CREATE TABLE "faction"(
     "faction_id" SERIAL PRIMARY KEY,
@@ -166,4 +176,15 @@ CREATE TABLE "character_spell_assignment"(
     "spell_id" INTEGER NOT NULL,
     FOREIGN KEY ("character_id") REFERENCES "character"("character_id"),
     FOREIGN KEY ("spell_id") REFERENCES "spells"("spell_id")
+);
+
+CREATE TABLE "spell_status_spell_assignment" (
+    "spell_status_spell_assignment_id" SERIAL PRIMARY KEY,
+    "spell_id" INTEGER NOT NULL,
+    "spell_status_id" INTEGER NOT NULL,
+    "chance" SMALLINT NOT NULL CHECK (chance BETWEEN 0 AND 100), -- Chance in percentage (0-100)
+    "duration" SMALLINT NOT NULL DEFAULT 1, -- Duration in turns/seconds (Default: 1 turn)
+    FOREIGN KEY ("spell_id") REFERENCES "spells"("spell_id") ON DELETE CASCADE,
+    FOREIGN KEY ("spell_status_id") REFERENCES "spell_status"("spell_status_id") ON DELETE CASCADE,
+    UNIQUE ("spell_id", "spell_status_id")
 );
