@@ -24,6 +24,9 @@ from db_function import (get_connection,
                          generate_spell,
                          get_element_map,
                          get_spell_status_map)
+from player_functions import (get_potential_player_spells,
+                              add_spell_to_character,
+                              get_equipped_spells)
 from validation import (is_valid_class,
                         is_valid_settlement)
 from utils import (create_embed,
@@ -242,7 +245,92 @@ def register_commands(bot: commands.Bot, conn: connection):
         )
         await ctx.send(response)
 
+    @bot.command()
+    async def add_spell(ctx):
+        """Allows a player to assign a spell to their selected character"""
+        player_spells = get_potential_player_spells(conn, ctx)
+        if not player_spells:
+            await ctx.send("You have no spells available to learn.")
+            return
 
+        spell_id_list = []
+
+        # Create an embed for each spell
+        for spell in player_spells:
+            spell_id = spell["spell_id"]
+            spell_name = spell["spell_name"]
+            spell_desc = spell["spell_description"]
+            spell_power = spell["spell_power"]
+            mana_cost = spell["mana_cost"]
+            cooldown = spell["cooldown"]
+            element_name = spell["element_name"]
+            status_name = spell["status_name"]
+            chance = spell["chance"]
+            duration = spell["duration"]
+
+            spell_id_list.append(spell_id)  # Store valid spell IDs
+
+            embed = discord.Embed(
+                title=f"Spell: {spell_name}", color=discord.Color.blue())
+            embed.add_field(name="Description", value=spell_desc, inline=False)
+            embed.add_field(name="Power", value=str(spell_power))
+            embed.add_field(name="Mana Cost", value=str(mana_cost))
+            embed.add_field(name="Cooldown", value=f"{cooldown} turns")
+            embed.add_field(name="Element", value=element_name)
+
+            # Add status effects if they exist
+            if status_name:
+                embed.add_field(
+                    name="Status Effect", value=f"{status_name} ({chance}% for {duration} turns)", inline=False)
+
+            embed.set_footer(text=f"Spell ID: {spell_id}")
+
+            await ctx.send(embed=embed)
+
+        # Ask for the player's input
+        await ctx.send("Reply with the Spell ID of the spell you want to learn.")
+
+        def check(m):
+            return m.author == ctx.author and m.channel == ctx.channel and m.content.isdigit()
+
+        try:
+            msg = await bot.wait_for("message", timeout=30.0, check=check)
+            selected_spell_id = int(msg.content)
+
+            if selected_spell_id not in spell_id_list:
+                await ctx.send("Invalid Spell ID. Please try again.")
+                return
+
+            add_spell_to_character(conn, ctx, selected_spell_id)
+
+            await ctx.send(f"Spell {selected_spell_id} has been added to your character!")
+
+        except TimeoutError:
+            await ctx.send("⏳ You took too long to respond. Try again.")
+
+    @bot.command()
+    async def spellbook(ctx):
+        """Checks the equipped spells"""
+        equipped_spells = get_equipped_spells(conn, ctx)
+        if not equipped_spells:
+            await ctx.send("You have no spells equipped.")
+            return
+        for spell in equipped_spells:
+            embed = discord.Embed(
+                title=f"Spell {spell.get('spell_name')}",
+                description=spell.get('spell_description'),
+                color=discord.Color.blue()
+            )
+            embed.add_field(name="Mana Cost", value=spell.get('mana_cost'))
+            embed.add_field(name="Cooldown", value=f"{spell.get('cooldown')} turns")
+            embed.add_field(name="Element", value=spell.get('element_name'))
+
+            if spell.get('status_name'):
+                embed.add_field(
+                    name="Status Effect", value=f"{spell.get('status_name')} ({spell.get('chance')}% for {spell.get('duration')} turns)", inline=False)
+
+            embed.set_footer(text=f"Spell ID: {spell.get('spell_id')}")
+            await ctx.send(embed=embed)
 
 if __name__ == "__main__":
     load_dotenv()
