@@ -349,14 +349,14 @@ def register_commands(bot: commands.Bot, conn: connection):
             time_since_last = (now - last_scavenged).total_seconds() / 60
 
             max_shards = 120
-            min_shards = 1
+            min_shards = time_since_last/2
 
             if time_since_last < 1:
                 await ctx.send(f"Sorry {ctx.author.display_name}, you can't scavenge so soon! Wait at least 1 minute.")
                 return
 
             # Random shards based on time waited
-            profit = randint(min_shards, min(int(time_since_last), max_shards))
+            profit = randint(min(max_shards/2, min_shards), min(int(time_since_last), max_shards))
 
             message = increase_wallet(conn, ctx.author.name, profit)
             update_last_scavenge(conn, ctx.author.name, now)
