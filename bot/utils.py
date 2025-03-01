@@ -91,7 +91,9 @@ def create_inventory_embed(ctx, items):
     )
 
     for item in items:
-        embed.add_field(name=f'{item.get('item_name').title().replace('_', ' ')}', value=f"Value: {item.get('value')} {'shard' if item.get('value') == 1 else 'shards'}", inline=False)
+        embed.add_field(name=f"{item.get('item_name').title().replace('_', ' ')}",
+                        value=f"Value: {item.get('value')} {'shard' if item.get('value') == 1 else 'shards'}",
+                        inline=False)
         embed.add_field(name='ID: ', value=item.get('item_id'))
     return embed
 
