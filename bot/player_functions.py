@@ -1,5 +1,6 @@
 """functions that help the player run commands"""
 from psycopg2.extensions import connection
+from datetime import datetime
 
 def get_potential_player_spells(conn: connection, ctx) -> list[dict]:
     """Returns a dictionary of player spells"""
@@ -81,3 +82,56 @@ def get_equipped_spells(conn: connection, ctx) -> list[dict]:
     with conn.cursor() as cursor:
         cursor.execute(query, (ctx.author.name,))
         return cursor.fetchall()
+
+
+def increase_wallet(conn: connection, player_name: str, profit: int) -> str:
+    """Increases the amount in the selected character's wallet"""
+    with conn.cursor() as cursor:
+        query = """
+                WITH selected_character AS (
+                    SELECT c.character_id
+                    FROM "character" c
+                    JOIN player p ON c.player_id = p.player_id
+                    WHERE p.player_name = %s
+                    AND c.selected_character = TRUE
+                )
+                UPDATE "character"
+                SET shards = shards + %s
+                WHERE character_id IN (SELECT character_id FROM selected_character)
+                RETURNING shards;
+                """
+        cursor.execute(query, (player_name, profit))
+        new_shards = cursor.fetchone().get('shards')
+
+        if new_shards:
+            conn.commit()
+            return f"{player_name} has received **{profit}** shards!\nYou now have **{new_shards}** in your wallet."
+        else:
+            return f"No selected character found for {player_name}."
+
+
+def get_last_scavenged(conn: connection, player_name: str) -> datetime:
+    """Gets the last time the selected character has scavanged"""
+    with conn.cursor() as cursor:
+        query = """
+                SELECT c.last_scavenge
+                FROM "character" c
+                JOIN player p ON c.player_id = p.player_id
+                WHERE p.player_name = %s
+                AND c.selected_character = TRUE;
+                """
+        cursor.execute(query, (player_name,))
+        return cursor.fetchone().get('last_scavenge')
+
+
+def update_last_scavenge(conn: connection, player_name: str, timestamp: datetime):
+    """Updates the last scavenge time for the selected character"""
+    with conn.cursor() as cursor:
+        query = """
+                UPDATE "character"
+                SET last_scavenge = %s
+                WHERE player_id = (SELECT player_id FROM player WHERE player_name = %s)
+                AND selected_character = TRUE;
+                """
+        cursor.execute(query, (timestamp, player_name))
+        conn.commit()
