@@ -2,6 +2,8 @@
 # pylint: disable=redefined-outer-name
 
 from os import environ as ENV
+from random import randint
+from datetime import datetime
 from dotenv import load_dotenv
 from psycopg2.extensions import connection
 import discord
@@ -26,7 +28,10 @@ from db_function import (get_connection,
                          get_spell_status_map)
 from player_functions import (get_potential_player_spells,
                               add_spell_to_character,
-                              get_equipped_spells)
+                              get_equipped_spells,
+                              increase_wallet,
+                              get_last_scavenged,
+                              update_last_scavenge)
 from validation import (is_valid_class,
                         is_valid_settlement)
 from utils import (create_embed,
@@ -332,6 +337,34 @@ def register_commands(bot: commands.Bot, conn: connection):
 
             embed.set_footer(text=f"Spell ID: {spell.get('spell_id')}")
             await ctx.send(embed=embed)
+
+    @bot.command()
+    async def scavenge(ctx):
+        """allows the player to scavenge for money"""
+        last_scavenged = get_last_scavenged(conn, ctx.author.name)
+
+        if last_scavenged:
+            now = datetime.now()
+            # Convert to minutes
+            time_since_last = (now - last_scavenged).total_seconds() / 60
+
+            max_shards = 120
+            min_shards = time_since_last/2
+
+            if time_since_last < 1:
+                await ctx.send(f"Sorry {ctx.author.display_name}, you can't scavenge so soon! Wait at least 1 minute.")
+                return
+
+            # Random shards based on time waited
+            profit = randint(min(max_shards/2, min_shards), min(int(time_since_last), max_shards))
+
+            message = increase_wallet(conn, ctx.author.name, profit)
+            update_last_scavenge(conn, ctx.author.name, now)
+
+            await ctx.send(message)
+        else:
+            await ctx.send(f"{ctx.author.display_name}, you need to create a character first!")
+
 
 if __name__ == "__main__":
     load_dotenv()
