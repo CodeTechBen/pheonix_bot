@@ -1,4 +1,5 @@
 """functions that help the player run commands"""
+from random import randint
 from datetime import datetime
 from psycopg2.extensions import connection
 
@@ -110,28 +111,106 @@ You now have **{new_shards}** in your wallet."""
         return f"No selected character found for {player_name}."
 
 
-def get_last_scavenged(conn: connection, player_name: str) -> datetime:
-    """Gets the last time the selected character has scavanged"""
+def get_last_event(conn: connection, player_name: str, event_name: str) -> datetime:
+    """Gets the last time the selected character performed a specific event"""
     with conn.cursor() as cursor:
         query = """
-                SELECT c.last_scavenge
+                SELECT c.character_name, ce.event_timestamp, et.event_name
+                FROM character_event AS ce
+                JOIN event_type AS et ON ce.event_type_id = et.event_type_id
+                JOIN character AS c ON ce.character_id = c.character_id
+                JOIN player AS p ON c.player_id = p.player_id
+                WHERE c.character_id = (
+                    SELECT c.character_id
+                    FROM "character" c
+                    JOIN player p ON c.player_id = p.player_id
+                    WHERE p.player_name = %s
+                    AND c.selected_character = TRUE
+                )
+                AND et.event_name = %s
+                ORDER BY ce.event_timestamp DESC
+                LIMIT 1;
+                """
+        cursor.execute(query, (player_name, event_name))
+        result = cursor.fetchone()
+        print(result)
+        return result['event_timestamp'] if result else None
+
+
+def update_last_event(conn: connection, player_name: str, event_name: str, timestamp: datetime):
+    """Inserts a new event for the selected character"""
+    with conn.cursor() as cursor:
+        # Get the character_id for the selected character
+        cursor.execute("""
+            SELECT c.character_id
+            FROM "character" c
+            JOIN "player" p ON c.player_id = p.player_id
+            WHERE p.player_name = %s
+            AND c.selected_character = TRUE;
+            """, (player_name,))
+        character_id = cursor.fetchone()['character_id']
+
+        # Get the event_type_id for the given event_name
+        cursor.execute("""
+            SELECT event_type_id
+            FROM "event_type"
+            WHERE event_name = %s;
+            """, (event_name,))
+        event_type_id = cursor.fetchone()['event_type_id']
+
+        # Insert the new event
+        cursor.execute("""
+            INSERT INTO "character_event" (character_id, event_type_id, event_timestamp)
+            VALUES (%s, %s, %s);
+            """, (character_id, event_type_id, timestamp))
+
+        conn.commit()
+
+
+def get_craft_skill(conn: connection, player_name) -> dict[str: int]:
+    """Gets a character id and their craft skill"""
+    with conn.cursor() as cursor:
+        # Get the player's selected character's craft skill
+        query = """
+                SELECT c.character_id, c.craft_skill
                 FROM "character" c
                 JOIN player p ON c.player_id = p.player_id
                 WHERE p.player_name = %s
                 AND c.selected_character = TRUE;
                 """
         cursor.execute(query, (player_name,))
-        return cursor.fetchone().get('last_scavenge')
+        result = cursor.fetchone()
 
-
-def update_last_scavenge(conn: connection, player_name: str, timestamp: datetime):
-    """Updates the last scavenge time for the selected character"""
+        if not result:
+            return f"{player_name}, you need to select a character first!"
+        return result
+    
+def insert_item_player_inventory(conn: connection, item_name: str, item_value: int, character_id: int) -> int:
+    """Inserts an item into a characters inventory"""
     with conn.cursor() as cursor:
+        # Insert item into inventory
         query = """
-                UPDATE "character"
-                SET last_scavenge = %s
-                WHERE player_id = (SELECT player_id FROM player WHERE player_name = %s)
-                AND selected_character = TRUE;
+                INSERT INTO item (item_name, value, inventory_id)
+                VALUES (%s, %s, (SELECT inventory_id FROM inventory WHERE character_id = %s))
+                RETURNING item_id;
                 """
-        cursor.execute(query, (timestamp, player_name))
+        cursor.execute(query, (item_name, item_value, character_id))
         conn.commit()
+
+        return cursor.fetchone().get('item_id')
+
+def create_item(conn: connection, player_name: str, item_name: str, item_value: int) -> str:
+    """Attempts to create an item based on the player's craft skill."""
+    result = get_craft_skill(conn, player_name)
+    character_id = result.get('character_id')
+    craft_skill = result.get('craft_skill')
+
+    # Determine crafting success chance
+    success_chance = min(
+        (craft_skill / (item_value * 2)) * 100, 95)
+    roll = randint(1, 100)
+
+    if roll > success_chance:
+        return f"{player_name}, your crafting attempt failed! Try again later."
+    item_id = insert_item_player_inventory(conn, item_name, item_value, character_id)
+    return f"{player_name.title()} successfully crafted '{item_name}' (Value: {item_value} {'shard' if item_value == 1 else 'shards'})!"

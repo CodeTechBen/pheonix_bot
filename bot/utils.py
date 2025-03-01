@@ -35,5 +35,67 @@ def create_embed(title, description, data_dict, color):
     return embed
 
 
+def get_player_id(conn, player_name: str, server_id: int):
+    """Fetches the player_id based on player_name and server_id."""
+    with conn.cursor() as cursor:
+        cursor.execute("""
+            SELECT player_id 
+            FROM player 
+            WHERE player_name = %s AND server_id = %s
+        """, (player_name, server_id))
+        player = cursor.fetchone()
+        return player.get('player_id') if player else None
+
+
+def get_character_id(conn, player_id: int):
+    """Fetches the character_id for the selected character."""
+    with conn.cursor() as cursor:
+        cursor.execute("""
+            SELECT character_id 
+            FROM character 
+            WHERE player_id = %s AND selected_character = TRUE
+        """, (player_id,))
+        character = cursor.fetchone()
+        return character.get('character_id') if character else None
+
+
+def get_inventory_id(conn, character_id: int):
+    """Fetches the inventory_id for the character."""
+    with conn.cursor() as cursor:
+        cursor.execute("""
+            SELECT inventory_id 
+            FROM inventory 
+            WHERE character_id = %s
+        """, (character_id,))
+        inventory = cursor.fetchone()
+        return inventory.get('inventory_id') if inventory else None
+
+
+def get_items_in_inventory(conn, inventory_id: int):
+    """Fetches all items in the specified inventory."""
+    with conn.cursor() as cursor:
+        cursor.execute("""
+            SELECT item_id, item_name, value 
+            FROM item 
+            WHERE inventory_id = %s
+        """, (inventory_id,))
+        return cursor.fetchall()
+
+
+def create_inventory_embed(ctx, items):
+    """Creates an embed to display the inventory items."""
+    embed = discord.Embed(
+        title=f"{ctx.author.display_name}'s Inventory",
+        description="Here are the items in your inventory:",
+        color=discord.Color.blue()
+    )
+
+    for item in items:
+        embed.add_field(name=f"{item.get('item_name').title().replace('_', ' ')}",
+                        value=f"Value: {item.get('value')} {'shard' if item.get('value') == 1 else 'shards'}",
+                        inline=False)
+        embed.add_field(name='ID: ', value=item.get('item_id'))
+    return embed
+
 if __name__ == "__main__":
     pass

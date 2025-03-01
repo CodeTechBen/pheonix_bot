@@ -57,3 +57,10 @@ INSERT INTO spell_type (spell_type_name) VALUES
 ('Buff'),
 ('Debuff'),
 ('Passive');
+
+-- default event types
+INSERT INTO event_type (event_name, event_description) VALUES
+('Scavenge', 'Searching the surroundings for useful resources'),
+('Craft', 'Creating an item using materials and skill'),
+('Enchant', 'Enhancing an item with magical properties'),
+('Combat', 'Engaging in a fight with an enemy');

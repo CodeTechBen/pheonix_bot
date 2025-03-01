@@ -3,7 +3,7 @@
 
 from os import environ as ENV
 from random import randint
-from datetime import datetime
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from psycopg2.extensions import connection
 import discord
@@ -25,17 +25,28 @@ from db_function import (get_connection,
                          generate_character,
                          generate_spell,
                          get_element_map,
-                         get_spell_status_map)
+                         get_spell_status_map,
+                         generate_events_for_character,
+                         generate_inventory_for_character)
+
 from player_functions import (get_potential_player_spells,
                               add_spell_to_character,
                               get_equipped_spells,
                               increase_wallet,
-                              get_last_scavenged,
-                              update_last_scavenge)
+                              update_last_event,
+                              get_last_event,
+                              create_item)
+
 from validation import (is_valid_class,
                         is_valid_settlement)
+
 from utils import (create_embed,
-                   get_input)
+                   get_input,
+                   get_player_id,
+                   get_character_id,
+                   get_inventory_id,
+                   get_items_in_inventory,
+                   create_inventory_embed)
 
 def create_bot() -> commands.Bot:
     """Initializes and returns the bot"""
@@ -133,6 +144,8 @@ def register_commands(bot: commands.Bot, conn: connection):
         class_id = class_map.get(class_name, None)
         if character_name and race_id and class_id:
             response = generate_character(conn, ctx, character_name, race_id, class_id, player_id)
+            generate_events_for_character(conn, ctx.author.name)
+            generate_inventory_for_character(conn, ctx.author.name)
             await ctx.send(response)
         else:
             await ctx.send("Invalid character name, race or class. ")
@@ -341,7 +354,7 @@ def register_commands(bot: commands.Bot, conn: connection):
     @bot.command()
     async def scavenge(ctx):
         """allows the player to scavenge for money"""
-        last_scavenged = get_last_scavenged(conn, ctx.author.name)
+        last_scavenged = get_last_event(conn, ctx.author.name, 'Scavenge')
 
         if last_scavenged:
             now = datetime.now()
@@ -356,14 +369,69 @@ def register_commands(bot: commands.Bot, conn: connection):
                 return
 
             # Random shards based on time waited
-            profit = randint(min(max_shards/2, min_shards), min(int(time_since_last), max_shards))
-
+            profit = randint(
+                int(round(min(max_shards/2, min_shards))),
+                int(round(min(int(time_since_last), max_shards)))
+            )
             message = increase_wallet(conn, ctx.author.name, profit)
-            update_last_scavenge(conn, ctx.author.name, now)
+            update_last_event(conn, ctx.author.name, 'Scavenge', now)
 
             await ctx.send(message)
         else:
             await ctx.send(f"{ctx.author.display_name}, you need to create a character first!")
+
+
+    @bot.command()
+    async def craft(ctx, item_name: str, item_value: int):
+        """Lets a player craft an item"""
+        # Get the last crafted time for the player
+        last_crafted = get_last_event(conn, ctx.author.name, 'Craft')
+
+        if last_crafted:
+            # Calculate the time difference from the last crafted event
+            time_since_last = datetime.now() - last_crafted
+
+            # If the player crafted in the last 3 hours, block the crafting
+            if time_since_last < timedelta(hours=3):
+                await ctx.send(f"You can't craft right now. Please wait {3 - time_since_last.seconds // 3600} hour(s) before crafting again.")
+                return
+
+        # If the player hasn't crafted recently, proceed with creating the item
+        message = create_item(conn, ctx.author.name, item_name, item_value)
+        await ctx.send(message)
+
+
+    @bot.command()
+    async def inventory(ctx, inventory_name: str = None):
+        """Shows the player their inventory in an embed"""
+
+        # Get player_id using player_name and server_id
+        player_id = get_player_id(conn, ctx.author.name, ctx.guild.id)
+        if not player_id:
+            await ctx.send("Player not found!")
+            return
+
+        # Get character_id for the player
+        character_id = get_character_id(conn, player_id)
+        if not character_id:
+            await ctx.send("No character selected for this player.")
+            return
+
+        # Get inventory_id for the character
+        inventory_id = get_inventory_id(conn, character_id)
+        if not inventory_id:
+            await ctx.send("This character does not have an inventory.")
+            return
+
+        # Get items in the inventory
+        items = get_items_in_inventory(conn, inventory_id)
+        if not items:
+            await ctx.send("Your inventory is empty.")
+            return
+
+        # Create the embed and send it
+        embed = create_inventory_embed(ctx, items)
+        await ctx.send(embed=embed)
 
 
 if __name__ == "__main__":
