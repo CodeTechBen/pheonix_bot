@@ -17,6 +17,8 @@ DROP TABLE IF EXISTS "player" CASCADE;
 DROP TABLE IF EXISTS "server" CASCADE;
 DROP TABLE IF EXISTS "spell_type" CASCADE;
 DROP TABLE IF EXISTS "spell_status_spell_assignment" CASCADE;
+DROP TABLE IF EXISTS "event_type" CASCADE;
+DROP TABLE IF EXISTS "character_event" CASCADE;
 
 -- Server table to ensure uniqueness per Discord server
 CREATE TABLE "server"(
@@ -132,6 +134,7 @@ CREATE TABLE "character"(
     "health" SMALLINT NOT NULL DEFAULT 100,
     "mana" SMALLINT NOT NULL DEFAULT 100,
     "shards" BIGINT NOT NULL DEFAULT 100,
+    "craft_skill" SMALLINT NOT NULL DEFAULT 50,
     "last_scavenge" TIMESTAMP NOT NULL DEFAULT NOW(),
     "player_id" INTEGER NOT NULL,
     "selected_character" BOOLEAN NOT NULL DEFAULT TRUE,
@@ -158,7 +161,6 @@ CREATE TABLE "inventory"(
     "inventory_id" SERIAL PRIMARY KEY,
     "inventory_name" VARCHAR(30) NOT NULL,
     "character_id" INTEGER NOT NULL,
-    "is_shop" BOOLEAN NOT NULL,
     FOREIGN KEY ("character_id") REFERENCES "character"("character_id")
 );
 
@@ -167,6 +169,8 @@ CREATE TABLE "item"(
     "item_name" VARCHAR(30) NOT NULL,
     "value" SMALLINT NOT NULL,
     "inventory_id" INTEGER NOT NULL,
+    "is_selling" BOOLEAN NOT NULL DEFAULT FALSE,
+    "spell_id" INTEGER DEFAULT NULL,
     FOREIGN KEY ("inventory_id") REFERENCES "inventory"("inventory_id")
 );
 
@@ -187,4 +191,19 @@ CREATE TABLE "spell_status_spell_assignment" (
     FOREIGN KEY ("spell_id") REFERENCES "spells"("spell_id") ON DELETE CASCADE,
     FOREIGN KEY ("spell_status_id") REFERENCES "spell_status"("spell_status_id") ON DELETE CASCADE,
     UNIQUE ("spell_id", "spell_status_id")
+);
+
+CREATE TABLE "event_type" (
+    "event_type_id" SERIAL PRIMARY KEY,
+    "event_name" VARCHAR(30) NOT NULL UNIQUE,
+    "event_description" VARCHAR(100) NOT NULL
+);
+
+CREATE TABLE "character_event" (
+    "character_event_id" SERIAL PRIMARY KEY,
+    "character_id" INTEGER NOT NULL,
+    "event_type_id" INTEGER NOT NULL,
+    "event_timestamp" TIMESTAMP NOT NULL DEFAULT NOW(),
+    FOREIGN KEY ("character_id") REFERENCES "character"("character_id") ON DELETE CASCADE,
+    FOREIGN KEY ("event_type_id") REFERENCES "event_type"("event_type_id") ON DELETE CASCADE
 );

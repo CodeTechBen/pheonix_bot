@@ -25,15 +25,20 @@ from db_function import (get_connection,
                          generate_character,
                          generate_spell,
                          get_element_map,
-                         get_spell_status_map)
+                         get_spell_status_map,
+                         generate_events_for_character)
+
 from player_functions import (get_potential_player_spells,
                               add_spell_to_character,
                               get_equipped_spells,
                               increase_wallet,
-                              get_last_scavenged,
-                              update_last_scavenge)
+                              update_last_event,
+                              get_last_event,
+                              create_item)
+
 from validation import (is_valid_class,
                         is_valid_settlement)
+
 from utils import (create_embed,
                    get_input)
 
@@ -133,6 +138,7 @@ def register_commands(bot: commands.Bot, conn: connection):
         class_id = class_map.get(class_name, None)
         if character_name and race_id and class_id:
             response = generate_character(conn, ctx, character_name, race_id, class_id, player_id)
+            generate_events_for_character(conn, ctx.author.name)
             await ctx.send(response)
         else:
             await ctx.send("Invalid character name, race or class. ")
@@ -341,7 +347,7 @@ def register_commands(bot: commands.Bot, conn: connection):
     @bot.command()
     async def scavenge(ctx):
         """allows the player to scavenge for money"""
-        last_scavenged = get_last_scavenged(conn, ctx.author.name)
+        last_scavenged = get_last_event(conn, ctx.author.name, 'Scavenge')
 
         if last_scavenged:
             now = datetime.now()
@@ -356,16 +362,21 @@ def register_commands(bot: commands.Bot, conn: connection):
                 return
 
             # Random shards based on time waited
-            profit = randint(min(max_shards/2, min_shards), min(int(time_since_last), max_shards))
-
+            profit = randint(
+                int(round(min(max_shards/2, min_shards))),
+                int(round(min(int(time_since_last), max_shards)))
+            )
             message = increase_wallet(conn, ctx.author.name, profit)
-            update_last_scavenge(conn, ctx.author.name, now)
+            update_last_event(conn, ctx.author.name, 'Scavenge', now)
 
             await ctx.send(message)
         else:
             await ctx.send(f"{ctx.author.display_name}, you need to create a character first!")
 
-
+    @bot.command()
+    async def craft(ctx, item_name: str, item_value: int):
+        message = create_item(conn, ctx.author.name, item_name, item_value)
+        await ctx.send(message)
 if __name__ == "__main__":
     load_dotenv()
     bot = create_bot()
