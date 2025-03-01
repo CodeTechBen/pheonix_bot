@@ -1,6 +1,6 @@
 """functions that help the player run commands"""
-from psycopg2.extensions import connection
 from datetime import datetime
+from psycopg2.extensions import connection
 
 def get_potential_player_spells(conn: connection, ctx) -> list[dict]:
     """Returns a dictionary of player spells"""
@@ -105,9 +105,9 @@ def increase_wallet(conn: connection, player_name: str, profit: int) -> str:
 
         if new_shards:
             conn.commit()
-            return f"{player_name} has received **{profit}** shards!\nYou now have **{new_shards}** in your wallet."
-        else:
-            return f"No selected character found for {player_name}."
+            return f"""{player_name.title()} has received **{profit}** shards!
+You now have **{new_shards}** in your wallet."""
+        return f"No selected character found for {player_name}."
 
 
 def get_last_scavenged(conn: connection, player_name: str) -> datetime:

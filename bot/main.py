@@ -2,9 +2,9 @@
 # pylint: disable=redefined-outer-name
 
 from os import environ as ENV
-from dotenv import load_dotenv
 from random import randint
 from datetime import datetime
+from dotenv import load_dotenv
 from psycopg2.extensions import connection
 import discord
 from discord.ext import commands
@@ -337,11 +337,11 @@ def register_commands(bot: commands.Bot, conn: connection):
 
             embed.set_footer(text=f"Spell ID: {spell.get('spell_id')}")
             await ctx.send(embed=embed)
-    
+
     @bot.command()
     async def scavenge(ctx):
-        player_name = ctx.author.name
-        last_scavenged = get_last_scavenged(conn, player_name)
+        """allows the player to scavenge for money"""
+        last_scavenged = get_last_scavenged(conn, ctx.author.name)
 
         if last_scavenged:
             now = datetime.now()
@@ -358,12 +358,12 @@ def register_commands(bot: commands.Bot, conn: connection):
             # Random shards based on time waited
             profit = randint(min_shards, min(int(time_since_last), max_shards))
 
-            message = increase_wallet(conn, player_name, profit)
-            update_last_scavenge(conn, player_name, now)
+            message = increase_wallet(conn, ctx.author.name, profit)
+            update_last_scavenge(conn, ctx.author.name, now)
 
             await ctx.send(message)
         else:
-            await ctx.send(f"{player_name}, you need to create a character first!")
+            await ctx.send(f"{ctx.author.display_name}, you need to create a character first!")
 
 
 if __name__ == "__main__":
