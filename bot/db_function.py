@@ -179,8 +179,8 @@ def get_element_map(conn: connection) -> dict[str: int]:
         return {row['element_name']: row['element_id'] for row in cursor.fetchall()}
 
 
-def generate_events_for_character(conn, player_name: str):
-    """Generates all events for the selected character of the given player and sets them to the current time."""
+def get_character_id(conn: connection, player_name: str):
+    """Gets the selected character id for a specifc player name"""
     with conn.cursor() as cursor:
         # Get the character_id of the selected character for the given player
         cursor.execute("""
@@ -197,6 +197,13 @@ def generate_events_for_character(conn, player_name: str):
                 f"No selected character found for player: {player_name}")
 
         character_id = result['character_id']
+        return character_id
+
+def generate_events_for_character(conn, player_name: str):
+    """Generates all events for the selected character of the given player and sets them to the current time."""
+    with conn.cursor() as cursor:
+        # Get the character_id of the selected character for the given player
+        character_id = get_character_id(conn, player_name)
         print(character_id)
 
         # Retrieve all event_type_id from the event_type table
@@ -217,6 +224,14 @@ def generate_events_for_character(conn, player_name: str):
 
         conn.commit()
 
+def generate_inventory_for_character(conn: connection, player_name: str):
+    """generates a inventory for the players selected character"""
+    character_id = get_character_id(conn, player_name)
+    with conn.cursor() as cursor:
+        query = """INSERT INTO inventory (inventory_name, character_id)
+                    VALUES (%s, %s)"""
+        cursor.execute(query, ('initial_inventory', character_id))
+        conn.commit()
 
 def get_spell_status_map(conn: connection) -> dict[str: int]:
     """Gets a dictionary of {spell_status_name: spell_status_id}"""

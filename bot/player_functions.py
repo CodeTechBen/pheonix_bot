@@ -187,7 +187,7 @@ def get_craft_skill(conn: connection, player_name) -> dict[str: int]:
     
 def insert_item_player_inventory(conn: connection, item_name: str, item_value: int, character_id: int) -> int:
     """Inserts an item into a characters inventory"""
-    with conn.cursor as cursor:
+    with conn.cursor() as cursor:
         # Insert item into inventory
         query = """
                 INSERT INTO item (item_name, value, inventory_id)
@@ -197,7 +197,7 @@ def insert_item_player_inventory(conn: connection, item_name: str, item_value: i
         cursor.execute(query, (item_name, item_value, character_id))
         conn.commit()
 
-    return cursor.fetchone().get('item_id')
+        return cursor.fetchone().get('item_id')
 
 def create_item(conn: connection, player_name: str, item_name: str, item_value: int) -> str:
     """Attempts to create an item based on the player's craft skill."""
@@ -212,5 +212,5 @@ def create_item(conn: connection, player_name: str, item_name: str, item_value: 
 
     if roll > success_chance:
         return f"{player_name}, your crafting attempt failed! Try again later."
-    item_id = insert_item_player_inventory(conn, item_name, item_value)
-    return f"{player_name} successfully crafted '{item_name}' (Value: {item_value})! 🎉"
+    item_id = insert_item_player_inventory(conn, item_name, item_value, character_id)
+    return f"{player_name.title()} successfully crafted '{item_name}' (Value: {item_value} {'shard' if item_value == 1 else 'shards'})!"
