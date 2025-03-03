@@ -6,9 +6,9 @@
 import discord
 from discord.ext import commands
 from psycopg2.extensions import connection
-from bot.database_utils.connection import DatabaseConnection
-from bot.database_utils.fetch_queries import DatabaseMapper
-from bot.database_utils.generate_queries import DataInserter
+from bot.database_utils import (DatabaseMapper,
+                                DataInserter,
+                                DatabaseConnection)
 
 class Location(commands.Cog):
     """commands that manage a location"""

@@ -5,9 +5,7 @@ Admin commands are explicitly for the maintaining of the Database of server."""
 from discord.ext import commands
 from psycopg2.extensions import connection
 
-
-from bot.database_utils.generate_queries import DataInserter
-from bot.database_utils.connection import DatabaseConnection
+from bot.database_utils import DataInserter, DatabaseConnection
 
 class Admin(commands.Cog):
     """Commands for managing player characters"""
