@@ -9,7 +9,8 @@ from psycopg2.extensions import connection
 from bot.database_utils import (DatabaseMapper,
                                 EmbedHelper,
                                 DataInserter,
-                                DatabaseConnection)
+                                DatabaseConnection,
+                                UserInputHelper)
 
 
 class Spell(commands.Cog):
