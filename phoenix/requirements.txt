@@ -1,0 +1,5 @@
+pylint
+pytest
+python-dotenv
+psycopg2-binary
+discord.py
