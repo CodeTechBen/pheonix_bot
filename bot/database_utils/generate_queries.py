@@ -3,6 +3,7 @@ from datetime import datetime
 import discord
 import discord.ext
 import discord.ext.commands
+from discord.ext import commands
 from psycopg2.extensions import connection
 
 from .fetch_queries import DatabaseIDFetch
@@ -35,7 +36,7 @@ class DataInserter:
         
 
     @classmethod
-    def generate_class(cls, guild: discord.Guild, class_name: str, is_playable: bool, conn: connection):
+    def generate_class(cls, guild: discord.Guild, class_name: str, is_playable: bool, conn: connection) -> str:
         """Creates a class in the Database according to user arguments"""
         print(f"Generating new class: {class_name}")
 
@@ -54,7 +55,7 @@ class DataInserter:
                     race_name: str,
                     is_playable: bool,
                     speed: int,
-                    conn: connection):
+                    conn: connection) -> str:
         """Creates a race in the Database according to user arguments"""
         print(f"Generating new race: {race_name}")
 
@@ -81,7 +82,7 @@ class DataInserter:
     
 
     @classmethod
-    def generate_location(cls, ctx, conn: connection):
+    def generate_location(cls, ctx: commands.Context, conn: connection) -> str:
         """Generates a location based on the channel this command is run in"""
         with conn.cursor() as cursor:
             cursor.execute(
@@ -95,7 +96,7 @@ class DataInserter:
 
 
     @classmethod
-    def generate_settlement(cls, ctx, conn: connection, location_map: dict[int, int]):
+    def generate_settlement(cls, ctx: commands.Context, conn: connection, location_map: dict[int, int]) -> str:
         """Generates a settlement based on the thread id this command is run in."""
         location_id = location_map[ctx.channel.parent.id]
         with conn.cursor() as cursor:
@@ -215,7 +216,7 @@ class DataInserter:
     @classmethod
     def generate_character(cls,
                            conn: connection,
-                           ctx,
+                           ctx: commands.Context,
                            character_name: str,
                            race_id: int,
                            class_id: int,
@@ -250,7 +251,7 @@ class DataInserter:
 
 
     @classmethod
-    def add_spell_to_character(cls, conn: connection, ctx, selected_spell_id):
+    def add_spell_to_character(cls, conn: connection, ctx: commands.Context, selected_spell_id: int):
         """Adds a spell to a characters assigned spells"""
         # Add spell to character
         with conn.cursor() as cursor:

@@ -24,7 +24,7 @@ class Creature(commands.Cog):
 
     @commands.command()
     async def create_class(self,
-                           ctx: discord.ext.commands.context,
+                           ctx: commands.Context,
                            class_name: str = None,
                            is_playable: bool = None):
         """Creates a class in the database"""
@@ -42,7 +42,7 @@ class Creature(commands.Cog):
 
     @commands.command()
     async def create_race(self,
-                          ctx: discord.ext.commands.context,
+                          ctx: commands.Context,
                           race_name: str = None,
                           is_playable: bool = None,
                           speed: int = 30):
@@ -79,7 +79,7 @@ class Creature(commands.Cog):
         return True
 
 
-async def setup(bot):
+async def setup(bot: commands.bot.Bot):
     """Sets up connection"""
     conn = DatabaseConnection.get_connection()
     await bot.add_cog(Creature(bot, conn))

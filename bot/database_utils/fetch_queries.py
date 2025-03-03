@@ -1,6 +1,7 @@
 """functions that gets the primary keys of tables from the database"""
 
 import discord
+from discord.ext import commands
 from datetime import datetime
 from psycopg2.extensions import connection
 
@@ -30,7 +31,7 @@ class DatabaseMapper:
 
 
     @classmethod
-    def get_settlement_mapping(cls, conn: connection, server_id: int) -> dict:
+    def get_settlement_mapping(cls, conn: connection, server_id: int) -> dict[int: int]:
         """Gets the thread id and settlement id in a dictionary"""
         with conn.cursor() as cursor:
             cursor.execute(
@@ -93,7 +94,7 @@ class DatabaseMapper:
 
 
     @classmethod
-    def get_spell_type_map(cls, conn: connection):
+    def get_spell_type_map(cls, conn: connection) -> dict[str: int]:
         """Gets a dictionary of spell types {spell_type_id: spell_type_name}"""
         with conn.cursor() as cursor:
             cursor.execute("""SELECT spell_type_id, spell_type_name
@@ -130,7 +131,7 @@ class DatabaseMapper:
 
 
     @classmethod
-    def get_craft_skill(cls, conn: connection, player_name) -> dict[str: int]:
+    def get_craft_skill(cls, conn: connection, player_name: str) -> dict[str: int]:
         """Gets a character id and their craft skill"""
         with conn.cursor() as cursor:
             # Get the player's selected character's craft skill
@@ -150,7 +151,7 @@ class DatabaseMapper:
 
 
     @classmethod
-    def get_equipped_spells(cls, conn: connection, ctx) -> list[dict]:
+    def get_equipped_spells(cls, conn: connection, ctx: commands.Context) -> list[dict]:
         """Checks the last equipped spells"""
         query = """
                 SELECT 
@@ -182,7 +183,7 @@ class DatabaseMapper:
 
 
     @classmethod
-    def get_potential_player_spells(cls, conn: connection, ctx) -> list[dict]:
+    def get_potential_player_spells(cls, conn: connection, ctx: commands.Context) -> list[dict]:
         """Returns a dictionary of player spells"""
         with conn.cursor() as cursor:
             query = """
@@ -299,7 +300,7 @@ class EmbedHelper:
     """Handles creating embeds for displaying data in Discord"""
 
     @classmethod
-    def create_map_embed(cls, title, description, data_dict, color):
+    def create_map_embed(cls, title: str, description: str, data_dict: dict, color: str) -> discord.Embed:
         """Creates an embed message for Discord with selectable options."""
         embed = discord.Embed(
             title=title, description=description, color=color)
@@ -309,7 +310,7 @@ class EmbedHelper:
         return embed
 
     @classmethod
-    def create_inventory_embed(cls, ctx, items):
+    def create_inventory_embed(cls, ctx: commands.Context, items: dict) -> discord.Embed:
         """Creates an embed to display the inventory items."""
         embed = discord.Embed(
             title=f"{ctx.author.display_name}'s Inventory",
@@ -331,7 +332,12 @@ class UserInputHelper:
     """Handles user input prompts and conversions"""
 
     @classmethod
-    async def get_input(cls, ctx, bot, prompt, convert_func=str, allow_zero: bool = False):
+    async def get_input(cls,
+                        ctx: commands.Context,
+                        bot: commands.bot.Bot,
+                        prompt: str,
+                        convert_func=str,
+                        allow_zero: bool = False):
         """Helper function to get user input with type conversion."""
         def check(m):
             return m.author == ctx.author and m.channel == ctx.channel

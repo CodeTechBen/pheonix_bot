@@ -28,7 +28,7 @@ class Character(commands.Cog):
         print("Character cog loaded")
 
     @commands.command()
-    async def create_character(self, ctx, character_name: str = None, race_name: str = None, class_name: str = None):
+    async def create_character(self, ctx: commands.Context, character_name: str = None, race_name: str = None, class_name: str = None):
         """Creates a player character in the database"""
         player_map = DatabaseMapper.get_player_mapping(self.conn, ctx.guild.id)
         player_name = ctx.author.name
@@ -59,7 +59,7 @@ class Character(commands.Cog):
             await ctx.send("Invalid character name, race or class. ")
 
     @commands.command()
-    async def add_spell(self, ctx):
+    async def add_spell(self, ctx: commands.Context):
         """Allows a player to assign a spell to their selected character"""
         player_spells = DatabaseMapper.get_potential_player_spells(
             self.conn, ctx)
@@ -124,7 +124,7 @@ class Character(commands.Cog):
             await ctx.send("⏳ You took too long to respond. Try again.")
 
     @commands.command()
-    async def spellbook(self, ctx):
+    async def spellbook(self, ctx: commands.Context):
         """Checks the equipped spells"""
         equipped_spells = DatabaseMapper.get_equipped_spells(self.conn, ctx)
         if not equipped_spells:
@@ -150,7 +150,7 @@ class Character(commands.Cog):
             await ctx.send(embed=embed)
 
     @commands.command()
-    async def scavenge(self, ctx):
+    async def scavenge(self, ctx: commands.Context):
         """allows the player to scavenge for money"""
 
         last_scavenged = DatabaseMapper.get_last_event(
@@ -184,7 +184,7 @@ class Character(commands.Cog):
             await ctx.send(f"{ctx.author.display_name}, you need to create a character first!")
 
     @commands.command()
-    async def craft(self, ctx, item_name: str, item_value: int):
+    async def craft(self, ctx: commands.Context, item_name: str, item_value: int):
         """Lets a player craft an item"""
         # Get the last crafted time for the player
         last_crafted = DatabaseMapper.get_last_event(
@@ -204,7 +204,7 @@ class Character(commands.Cog):
             await ctx.send(message)
 
     @commands.command()
-    async def inventory(self, ctx):
+    async def inventory(self, ctx: commands.Context):
         """Shows the player their inventory in an embed"""
 
         # Get character_id for the player

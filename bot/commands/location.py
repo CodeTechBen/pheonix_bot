@@ -18,7 +18,7 @@ class Location(commands.Cog):
         self.conn = conn
         print('Location log loaded')
     
-    def is_valid_settlement(self, ctx) -> tuple[bool, str]:
+    def is_valid_settlement(self, ctx: commands.Context) -> tuple[bool, str]:
         """
         Checks if the command location is a valid settlement
         i.e. A thread inside of a forum
@@ -31,7 +31,7 @@ class Location(commands.Cog):
         return True, None
 
     @commands.command()
-    async def create_settlement(self, ctx):
+    async def create_settlement(self, ctx: commands.Context):
         """Sets a channel as a location"""
         if not ctx.author.guild_permissions.administrator:
             await ctx.send("You must be an admin to use this command.")
@@ -59,7 +59,7 @@ class Location(commands.Cog):
             await ctx.send(DataInserter.generate_settlement(ctx, self.conn, location_map))
     
 
-async def setup(bot):
+async def setup(bot: commands.bot.Bot):
     """Sets up connection"""
     conn = DatabaseConnection.get_connection()
     await bot.add_cog(Location(bot, conn))

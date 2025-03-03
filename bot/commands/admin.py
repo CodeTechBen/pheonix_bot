@@ -19,7 +19,7 @@ class Admin(commands.Cog):
         print('Admin cog loaded')
 
     @commands.command()
-    async def add_server(self, ctx: discord.ext.commands.context):
+    async def add_server(self, ctx: commands.Context):
         """Manually uploads the server to the DB"""
         await ctx.send(DataInserter.upload_server(ctx.guild, self.conn))
     

@@ -19,7 +19,7 @@ class Spell(commands.Cog):
         print('Spell cog loaded')
 
     @commands.command()
-    async def create_spell(self, ctx: discord.ext.commands.context):
+    async def create_spell(self, ctx: commands.Context):
         """Command to generate a spell"""
         if not ctx.author.guild_permissions.administrator:
             await ctx.send('You must be an admin to use this command.')
@@ -103,7 +103,7 @@ class Spell(commands.Cog):
         )
         await ctx.send(response)
 
-async def setup(bot):
+async def setup(bot: commands.bot.Bot):
     """Sets up connection"""
     conn = DatabaseConnection.get_connection()
     await bot.add_cog(Spell(bot, conn))
