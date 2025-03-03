@@ -4,12 +4,11 @@ import discord
 from datetime import datetime
 from psycopg2.extensions import connection
 
-
 class DatabaseMapper:
     """This defines the functions that get the mappings from the database"""
 
     @classmethod
-    def get_player_mapping(conn: connection, server_id: int) -> dict[str, int]:
+    def get_player_mapping(cls, conn: connection, server_id: int) -> dict[str, int]:
         """Returns a dictionary of player names and their DB ID number for a specific server"""
         with conn.cursor() as cursor:
             cursor.execute(
@@ -20,7 +19,7 @@ class DatabaseMapper:
 
 
     @classmethod
-    def get_location_mapping(conn: connection, server_id: int) -> dict[int, int]:
+    def get_location_mapping(cls, conn: connection, server_id: int) -> dict[int, int]:
         """Gets the channel id and the location id in a dictionary"""
         with conn.cursor() as cursor:
             cursor.execute(
@@ -31,7 +30,7 @@ class DatabaseMapper:
 
 
     @classmethod
-    def get_settlement_mapping(conn: connection, server_id: int) -> dict:
+    def get_settlement_mapping(cls, conn: connection, server_id: int) -> dict:
         """Gets the thread id and settlement id in a dictionary"""
         with conn.cursor() as cursor:
             cursor.execute(
@@ -42,7 +41,7 @@ class DatabaseMapper:
 
 
     @classmethod
-    def get_character_mapping(conn: connection, player_id: int) -> dict[int, int]:
+    def get_character_mapping(cls, conn: connection, player_id: int) -> dict[int, int]:
         """Gets a dictionary for {character_name : character_id} for a specific player"""
         with conn.cursor() as cursor:
             cursor.execute(
@@ -54,7 +53,7 @@ class DatabaseMapper:
 
 
     @classmethod
-    def get_race_map(conn: connection, server_id: int) -> dict[str: int]:
+    def get_race_map(cls, conn: connection, server_id: int) -> dict[str: int]:
         """Gets a dictionary of {race_name: race_id}"""
         with conn.cursor() as cursor:
             cursor.execute("""SELECT race_name, race_id
@@ -65,7 +64,7 @@ class DatabaseMapper:
 
 
     @classmethod
-    def get_class_map(conn: connection, server_id: int) -> dict[str: int]:
+    def get_class_map(cls, conn: connection, server_id: int) -> dict[str: int]:
         """Gets a dictionary of {race_name: race_id}"""
         with conn.cursor() as cursor:
             cursor.execute("""SELECT class_name, class_id
@@ -76,7 +75,7 @@ class DatabaseMapper:
 
 
     @classmethod
-    def get_element_map(conn: connection) -> dict[str: int]:
+    def get_element_map(cls, conn: connection) -> dict[str: int]:
         """gets a dictionary of {element_name: element_id}"""
         with conn.cursor() as cursor:
             cursor.execute("""SELECT element_name, element_id
@@ -85,7 +84,7 @@ class DatabaseMapper:
 
 
     @classmethod
-    def get_spell_status_map(conn: connection) -> dict[str: int]:
+    def get_spell_status_map(cls, conn: connection) -> dict[str: int]:
         """Gets a dictionary of {spell_status_name: spell_status_id}"""
         with conn.cursor() as cursor:
             cursor.execute("""SELECT status_name, spell_status_id
@@ -94,7 +93,7 @@ class DatabaseMapper:
 
 
     @classmethod
-    def get_spell_type_map(conn: connection):
+    def get_spell_type_map(cls, conn: connection):
         """Gets a dictionary of spell types {spell_type_id: spell_type_name}"""
         with conn.cursor() as cursor:
             cursor.execute("""SELECT spell_type_id, spell_type_name
@@ -103,8 +102,9 @@ class DatabaseMapper:
 
 
     @classmethod
-    def get_last_event(conn: connection, player_name: str, event_name: str) -> datetime:
+    def get_last_event(cls, conn: connection, player_name: str, event_name: str) -> datetime:
         """Gets the last time the selected character performed a specific event"""
+        print('getting last event')
         with conn.cursor() as cursor:
             query = """
                     SELECT c.character_name, ce.event_timestamp, et.event_name
@@ -130,7 +130,7 @@ class DatabaseMapper:
 
 
     @classmethod
-    def get_craft_skill(conn: connection, player_name) -> dict[str: int]:
+    def get_craft_skill(cls, conn: connection, player_name) -> dict[str: int]:
         """Gets a character id and their craft skill"""
         with conn.cursor() as cursor:
             # Get the player's selected character's craft skill
@@ -150,7 +150,7 @@ class DatabaseMapper:
 
 
     @classmethod
-    def get_equipped_spells(conn: connection, ctx) -> list[dict]:
+    def get_equipped_spells(cls, conn: connection, ctx) -> list[dict]:
         """Checks the last equipped spells"""
         query = """
                 SELECT 
@@ -182,7 +182,7 @@ class DatabaseMapper:
 
 
     @classmethod
-    def get_potential_player_spells(conn: connection, ctx) -> list[dict]:
+    def get_potential_player_spells(cls, conn: connection, ctx) -> list[dict]:
         """Returns a dictionary of player spells"""
         with conn.cursor() as cursor:
             query = """
@@ -221,7 +221,7 @@ class DatabaseIDFetch:
     """This defines the functions used to get the ID of a table in the database"""
 
     @classmethod
-    def fetch_selected_character_id(conn: connection, player_name: str):
+    def fetch_selected_character_id(cls, conn: connection, player_name: str):
         """Gets the selected character id for a specific player name"""
         with conn.cursor() as cursor:
             # Get the character_id of the selected character for the given player
@@ -240,11 +240,12 @@ class DatabaseIDFetch:
 
             character_id = result['character_id']
             return character_id
-    
+
 
     @classmethod
-    def get_player_id(conn: connection, player_name: str, server_id: int):
+    def get_player_id(cls, conn: connection, player_name: str, server_id: int):
         """Fetches the player_id based on player_name and server_id."""
+        print('get player id')
         with conn.cursor() as cursor:
             cursor.execute("""
                 SELECT player_id 
@@ -255,7 +256,7 @@ class DatabaseIDFetch:
             return player.get('player_id') if player else None
     
     @classmethod
-    def get_selected_character_id(conn, player_id: int):
+    def get_selected_character_id(cls, conn: connection, player_id: int) -> int:
         """Fetches the character_id for the selected character."""
         with conn.cursor() as cursor:
             cursor.execute("""
@@ -267,7 +268,7 @@ class DatabaseIDFetch:
             return character.get('character_id') if character else None
         
     @classmethod
-    def get_inventory_id(conn, character_id: int):
+    def get_inventory_id(cls, conn, character_id: int):
         """Fetches the inventory_id for the character."""
         with conn.cursor() as cursor:
             cursor.execute("""
@@ -330,7 +331,7 @@ class UserInputHelper:
     """Handles user input prompts and conversions"""
 
     @classmethod
-    async def get_input(cls, ctx, bot, prompt, convert_func=str, allow_zero=False):
+    async def get_input(cls, ctx, bot, prompt, convert_func=str, allow_zero: bool = False):
         """Helper function to get user input with type conversion."""
         def check(m):
             return m.author == ctx.author and m.channel == ctx.channel

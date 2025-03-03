@@ -6,6 +6,9 @@
 import discord
 from discord.ext import commands
 from psycopg2.extensions import connection
+from bot.database_utils.connection import DatabaseConnection
+from bot.database_utils.fetch_queries import DatabaseMapper
+from bot.database_utils.generate_queries import DataInserter
 
 class Location(commands.Cog):
     """commands that manage a location"""
@@ -13,6 +16,7 @@ class Location(commands.Cog):
     def __init__(self, bot: commands.bot.Bot, conn: connection):
         self.bot = bot
         self.conn = conn
+        print('Location log loaded')
     
     def is_valid_settlement(self, ctx) -> tuple[bool, str]:
         """
@@ -43,13 +47,19 @@ class Location(commands.Cog):
             f"Thread: **{ctx.channel.name}** (ID: `{ctx.channel.id}`)"
         )
 
-        location_map = get_location_mapping(conn, ctx.guild.id)
+        location_map = DatabaseMapper.get_location_mapping(self.conn, ctx.guild.id)
         if ctx.channel.parent.id not in location_map.keys():
+            # How to get a link to the location
             print(
-                f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.parent.id}")
-            await ctx.send(generate_location(ctx, conn))
-            print(f"Generated Location {ctx.channel.parent.name}")
-        location_map = get_location_mapping(conn, ctx.guild.id)
-        settlement_map = get_settlement_mapping(conn, ctx.guild.id)
+                f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.parent.id}") 
+            await ctx.send(DataInserter.generate_location(ctx, self.conn))
+        location_map = DatabaseMapper.get_location_mapping(self.conn, ctx.guild.id)
+        settlement_map = DatabaseMapper.get_settlement_mapping(self.conn, ctx.guild.id)
         if ctx.channel.id not in settlement_map.keys():
-            await ctx.send(generate_settlement(ctx, conn, location_map))
+            await ctx.send(DataInserter.generate_settlement(ctx, self.conn, location_map))
+    
+
+async def setup(bot):
+    """Sets up connection"""
+    conn = DatabaseConnection.get_connection()
+    await bot.add_cog(Location(bot, conn))
