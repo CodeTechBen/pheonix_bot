@@ -2,7 +2,7 @@
 
 import pytest
 from unittest.mock import MagicMock, patch
-from fetch_queries import DatabaseMapper, DatabaseIDFetch, InventoryDatabase
+from database_utils import DatabaseMapper, DatabaseIDFetch, InventoryDatabase
 
 
 @pytest.fixture
