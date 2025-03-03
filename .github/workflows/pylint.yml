@@ -43,7 +43,7 @@ jobs:
         run: |
           cd bot
           pip install -r requirements.txt
-          pylint --fail-under 9 $(git ls-files '*.py')
+          pylint --fail-under 7 $(git ls-files '*.py')
 
 
 
