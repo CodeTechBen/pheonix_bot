@@ -28,7 +28,11 @@ class Character(commands.Cog):
         print("Character cog loaded")
 
     @commands.command()
-    async def create_character(self, ctx: commands.Context, character_name: str = None, race_name: str = None, class_name: str = None):
+    async def create_character(self,
+                               ctx: commands.Context,
+                               character_name: str = None,
+                               race_name: str = None,
+                               class_name: str = None):
         """Creates a player character in the database"""
         player_map = DatabaseMapper.get_player_mapping(self.conn, ctx.guild.id)
         player_name = ctx.author.name
@@ -95,7 +99,8 @@ class Character(commands.Cog):
             # Add status effects if they exist
             if status_name:
                 embed.add_field(
-                    name="Status Effect", value=f"{status_name} ({chance}% for {duration} turns)", inline=False)
+                    name="Status Effect",
+                    value=f"{status_name} ({chance}% for {duration} turns)", inline=False)
 
             embed.set_footer(text=f"Spell ID: {spell_id}")
 

@@ -1,8 +1,8 @@
 """functions that gets the primary keys of tables from the database"""
 
+from datetime import datetime
 import discord
 from discord.ext import commands
-from datetime import datetime
 from psycopg2.extensions import connection
 
 class DatabaseMapper:
@@ -216,7 +216,7 @@ class DatabaseMapper:
             """
             cursor.execute(query, (ctx.author.name,))
             return cursor.fetchall()
-        
+
 
 class DatabaseIDFetch:
     """This defines the functions used to get the ID of a table in the database"""
@@ -255,7 +255,8 @@ class DatabaseIDFetch:
             """, (player_name, server_id))
             player = cursor.fetchone()
             return player.get('player_id') if player else None
-    
+
+
     @classmethod
     def get_selected_character_id(cls, conn: connection, player_id: int) -> int:
         """Fetches the character_id for the selected character."""
@@ -267,7 +268,8 @@ class DatabaseIDFetch:
             """, (player_id,))
             character = cursor.fetchone()
             return character.get('character_id') if character else None
-        
+
+
     @classmethod
     def get_inventory_id(cls, conn, character_id: int):
         """Fetches the inventory_id for the character."""
@@ -300,7 +302,11 @@ class EmbedHelper:
     """Handles creating embeds for displaying data in Discord"""
 
     @classmethod
-    def create_map_embed(cls, title: str, description: str, data_dict: dict, color: str) -> discord.Embed:
+    def create_map_embed(cls,
+                         title: str,
+                         description: str,
+                         data_dict: dict,
+                         color: str) -> discord.Embed:
         """Creates an embed message for Discord with selectable options."""
         embed = discord.Embed(
             title=title, description=description, color=color)
@@ -319,9 +325,11 @@ class EmbedHelper:
         )
 
         for item in items:
+            item_name = item.get('item_name')
+            shards = item.get('value')
             embed.add_field(
-                name=f"{item.get('item_name').title().replace('_', ' ')}",
-                value=f"Value: {item.get('value')} {'shard' if item.get('value') == 1 else 'shards'}",
+                name=f"{item_name.title().replace('_', ' ')}",
+                value=f"Value: {shards} {'shard' if shards == 1 else 'shards'}",
                 inline=False
             )
             embed.add_field(name="ID:", value=item.get("item_id"))

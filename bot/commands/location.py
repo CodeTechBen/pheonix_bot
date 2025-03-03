@@ -17,7 +17,8 @@ class Location(commands.Cog):
         self.bot = bot
         self.conn = conn
         print('Location log loaded')
-    
+
+
     def is_valid_settlement(self, ctx: commands.Context) -> tuple[bool, str]:
         """
         Checks if the command location is a valid settlement
@@ -36,7 +37,7 @@ class Location(commands.Cog):
         if not ctx.author.guild_permissions.administrator:
             await ctx.send("You must be an admin to use this command.")
             return
-        
+
         is_valid, message = self.is_valid_settlement(ctx)
         if not is_valid:
             await ctx.send(message)
@@ -51,13 +52,13 @@ class Location(commands.Cog):
         if ctx.channel.parent.id not in location_map.keys():
             # How to get a link to the location
             print(
-                f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.parent.id}") 
+                f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.parent.id}")
             await ctx.send(DataInserter.generate_location(ctx, self.conn))
         location_map = DatabaseMapper.get_location_mapping(self.conn, ctx.guild.id)
         settlement_map = DatabaseMapper.get_settlement_mapping(self.conn, ctx.guild.id)
         if ctx.channel.id not in settlement_map.keys():
             await ctx.send(DataInserter.generate_settlement(ctx, self.conn, location_map))
-    
+
 
 async def setup(bot: commands.bot.Bot):
     """Sets up connection"""

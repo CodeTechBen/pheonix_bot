@@ -5,6 +5,7 @@ from psycopg2.extensions import connection
 from psycopg2.extras import RealDictCursor
 
 class DatabaseConnection:
+    """Object that returns or closes a connection to the database"""
     _connection = None
 
     @classmethod
@@ -21,7 +22,7 @@ class DatabaseConnection:
 
     @classmethod
     def close_connection(cls):
+        """Closes the postgres connection"""
         if cls._connection:
             cls._connection.close()
             cls._connection = None
-

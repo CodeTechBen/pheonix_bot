@@ -1,8 +1,6 @@
 """functions that puts data into the database"""
 from datetime import datetime
 import discord
-import discord.ext
-import discord.ext.commands
 from discord.ext import commands
 from psycopg2.extensions import connection
 
@@ -12,7 +10,7 @@ class DataInserter:
     """
     This class defines the functions
     that is used to insert data into the database"""
-    
+
     @classmethod
     def upload_server(cls, guild: discord.Guild, conn: connection) -> str:
         """
@@ -33,10 +31,14 @@ class DataInserter:
                         (guild.id, guild.name))
             conn.commit()
             return f"Server {guild.name} (ID: {guild.id}) added to the database."
-        
+
 
     @classmethod
-    def generate_class(cls, guild: discord.Guild, class_name: str, is_playable: bool, conn: connection) -> str:
+    def generate_class(cls,
+                       guild: discord.Guild,
+                       class_name: str,
+                       is_playable: bool,
+                       conn: connection) -> str:
         """Creates a class in the Database according to user arguments"""
         print(f"Generating new class: {class_name}")
 
@@ -61,13 +63,14 @@ class DataInserter:
 
         with conn.cursor() as cursor:
             cursor.execute(
-                "INSERT INTO race (race_name, speed, is_playable, server_id) VALUES (%s, %s, %s, %s)",
+                """INSERT INTO race (race_name, speed, is_playable, server_id)
+                VALUES (%s, %s, %s, %s)""",
                 (race_name, speed, is_playable, guild.id)
             )
             conn.commit()
             return f"Race ({race_name}) has been added to the database."
-    
-    
+
+
     @classmethod
     def create_player(cls, ctx, conn: connection) -> int:
         """Creates a player in the database and returns the player ID"""
@@ -79,7 +82,7 @@ class DataInserter:
             player_id = cursor.fetchone()["player_id"]
             conn.commit()
         return player_id
-    
+
 
     @classmethod
     def generate_location(cls, ctx: commands.Context, conn: connection) -> str:
@@ -96,7 +99,10 @@ class DataInserter:
 
 
     @classmethod
-    def generate_settlement(cls, ctx: commands.Context, conn: connection, location_map: dict[int, int]) -> str:
+    def generate_settlement(cls,
+                            ctx: commands.Context,
+                            conn: connection,
+                            location_map: dict[int, int]) -> str:
         """Generates a settlement based on the thread id this command is run in."""
         location_id = location_map[ctx.channel.parent.id]
         with conn.cursor() as cursor:
@@ -112,7 +118,11 @@ class DataInserter:
 
     @classmethod
     def generate_events_for_character(cls, conn: connection, player_name: str):
-        """Generates all events for the selected character of the given player and sets them to the current time."""
+        """
+        Generates all events for the selected character of the given player
+        and sets them to the current time.
+        
+        """
         with conn.cursor() as cursor:
             # Get the character_id of the selected character for the given player
             character_id = DatabaseIDFetch.fetch_selected_character_id(conn, player_name)
@@ -251,7 +261,10 @@ class DataInserter:
 
 
     @classmethod
-    def add_spell_to_character(cls, conn: connection, ctx: commands.Context, selected_spell_id: int):
+    def add_spell_to_character(cls,
+                               conn: connection,
+                               ctx: commands.Context,
+                               selected_spell_id: int):
         """Adds a spell to a characters assigned spells"""
         # Add spell to character
         with conn.cursor() as cursor:
@@ -268,7 +281,11 @@ class DataInserter:
 
 
     @classmethod
-    def insert_item_player_inventory(cls, conn: connection, item_name: str, item_value: int, character_id: int) -> int:
+    def insert_item_player_inventory(cls,
+                                     conn: connection,
+                                     item_name: str,
+                                     item_value: int,
+                                     character_id: int) -> int:
         """Inserts an item into a characters inventory"""
         with conn.cursor() as cursor:
             # Insert item into inventory
@@ -284,7 +301,11 @@ class DataInserter:
 
 
     @classmethod
-    def update_last_event(cls, conn: connection, player_name: str, event_name: str, timestamp: datetime):
+    def update_last_event(cls,
+                          conn: connection,
+                          player_name: str,
+                          event_name: str,
+                          timestamp: datetime):
         """Inserts a new event for the selected character"""
         with conn.cursor() as cursor:
             # Get the character_id for the selected character

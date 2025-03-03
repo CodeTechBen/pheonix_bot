@@ -1,3 +1,5 @@
+# pylint: disable-all
+
 import pytest
 from unittest.mock import MagicMock, patch
 from fetch_queries import DatabaseMapper, DatabaseIDFetch, InventoryDatabase

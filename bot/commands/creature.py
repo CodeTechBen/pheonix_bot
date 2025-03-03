@@ -4,12 +4,8 @@
 - !create_class
 """
 
-import discord
 from discord.ext import commands
-import discord.ext.commands
 from psycopg2.extensions import connection
-
-import discord.ext
 
 from bot.database_utils.connection import DatabaseConnection
 from bot.database_utils.generate_queries import DataInserter
@@ -61,7 +57,8 @@ class Creature(commands.Cog):
         response = DataInserter.generate_race(
             ctx.guild, race_name.title(), is_playable, speed, self.conn)
         await ctx.send(response)
-    
+
+
     def is_valid_class(self, class_name: str, is_playable: bool) -> bool:
         """
         Checks that the class name and is_playable
