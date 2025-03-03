@@ -27,6 +27,7 @@ jobs:
           if find . -name "test_*.py" | grep .; then
             echo "Test files found. Running pytest..."
             pip install -r requirements.txt
+            export PYTHONPATH=$PYTHONPATH:$(pwd)
             pytest . --maxfail=1
           else
             echo "No test files found. Skipping pytest."
