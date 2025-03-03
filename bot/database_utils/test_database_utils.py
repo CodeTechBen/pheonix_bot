@@ -12,13 +12,12 @@ def mock_connection():
     return mock_conn, mock_cursor
 
 class FetchQueries:
+    """This is a base class for all tests happening to the fetch_queries.py file"""
     pass
-
 
 class TestDatabaseMaps(FetchQueries):
     """Defines all the tests that check
-    the functions which get the database maps
-    from fetch_queries.py files"""
+    the DatabaseMapper methods."""
 
     def test_get_player_mapping(self, mock_connection):
         mock_conn, mock_cursor = mock_connection
@@ -32,10 +31,10 @@ class TestDatabaseMaps(FetchQueries):
     def test_get_location_mapping(self, mock_connection):
         mock_conn, mock_cursor = mock_connection
         mock_cursor.fetchall.return_value = [
-            {'channel_id': 1, 'location_id': 2}, {'channel_id': 3, 'location_id': 4}]
+            {'channel_id': 1, 'location_id': 1}, {'channel_id': 1, 'location_id': 2}]
 
         result = DatabaseMapper.get_location_mapping(mock_conn, 12345)
-        assert result == {1: 2, 3: 4}
+        assert result == {1: 1, 1: 2}
     
 
     def test_get_character_mapping(self, mock_connection):
@@ -83,7 +82,10 @@ class TestIDFetcher(FetchQueries):
 class TestInventoryDatabase(FetchQueries):
     def test_get_items_in_inventory(self, mock_connection):
         mock_conn, mock_cursor = mock_connection
-        mock_cursor.fetchall.return_value = [{'item_id' : 1,'item_name' : 'Excalibur', 'Value' : 500}]
+        mock_cursor.fetchall.return_value = [{'item_id' : 1,'item_name' : 'Excalibur', 'Value' : 500},
+                                             {'item_id' : 2, 'item_name': 'Lance of Longinus', 'Value' : 200},
+                                             {'item_id' : 3, 'item_name': 'Mjolnir', 'Value': 350}]
         result = InventoryDatabase.get_items_in_inventory(mock_conn, 42)
-        assert result == [
-            {'item_id': 1, 'item_name': 'Excalibur', 'Value': 500}]
+        assert result == [{'item_id': 1, 'item_name': 'Excalibur', 'Value': 500},
+                          {'item_id': 2, 'item_name': 'Lance of Longinus', 'Value': 200},
+                          {'item_id': 3, 'item_name': 'Mjolnir', 'Value': 350}]
