@@ -63,4 +63,7 @@ INSERT INTO event_type (event_name, event_description) VALUES
 ('Scavenge', 'Searching the surroundings for useful resources'),
 ('Craft', 'Creating an item using materials and skill'),
 ('Enchant', 'Enhancing an item with magical properties'),
-('Combat', 'Engaging in a fight with an enemy');
+('Combat', 'Engaging in a fight with an enemy'),
+('Sell', 'Selling an item'),
+('Buy', 'Buying an item')
+;

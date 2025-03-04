@@ -178,6 +178,7 @@ CREATE TABLE "character_spell_assignment"(
     "character_spell_assignment_id" SERIAL PRIMARY KEY,
     "character_id" INTEGER NOT NULL,
     "spell_id" INTEGER NOT NULL,
+    "time_added" TIMESTAMP NOT NULL DEFAULT NOW(),
     FOREIGN KEY ("character_id") REFERENCES "character"("character_id"),
     FOREIGN KEY ("spell_id") REFERENCES "spells"("spell_id")
 );
@@ -202,6 +203,7 @@ CREATE TABLE "event_type" (
 CREATE TABLE "character_event" (
     "character_event_id" SERIAL PRIMARY KEY,
     "character_id" INTEGER NOT NULL,
+    "item_id" INTEGER DEFAULT NULL,
     "event_type_id" INTEGER NOT NULL,
     "event_timestamp" TIMESTAMP NOT NULL DEFAULT NOW(),
     FOREIGN KEY ("character_id") REFERENCES "character"("character_id") ON DELETE CASCADE,

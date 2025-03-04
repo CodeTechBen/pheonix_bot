@@ -10,6 +10,7 @@ from random import randint
 import re
 from datetime import datetime, timedelta
 import discord
+from discord.ui import View, Button
 from discord.ext import commands
 from psycopg2.extensions import connection
 
@@ -191,9 +192,13 @@ class Character(commands.Cog):
             await ctx.send(f"{ctx.author.display_name}, you need to create a character first!")
 
     @commands.command()
-    async def craft(self, ctx: commands.Context, item_name: str, item_value: int):
+    async def craft(self, ctx: commands.Context, item_name: str = None, item_value: int = None):
         """Lets a player craft an item"""
         # Get the last crafted time for the player
+        if not item_name or not item_value:
+            await ctx.send('Usage !craft <item_name> <item_value>')
+            return
+
         last_crafted = DatabaseMapper.get_last_event(
             self.conn, ctx.author.name, 'Craft')
 
@@ -209,6 +214,9 @@ class Character(commands.Cog):
             message = self.create_item(
                 self.conn, ctx.author.name, item_name, item_value)
             await ctx.send(message)
+        else:
+            await ctx.send('Please make a character using !create_character <race> <class>')
+
 
     @commands.command()
     async def inventory(self, ctx: commands.Context):
@@ -289,8 +297,71 @@ class Character(commands.Cog):
         DataInserter.add_character_image(self.conn, ctx.author.name, image_url)
         await ctx.send("Character image has been updated successfully!")
 
+    @commands.command()
+    async def quick_sell(self, ctx: commands.Context):
+        """Allows a player to quickly sell items from their inventory."""
+
+        # Get character_id for the player
+        character_id = DatabaseIDFetch.fetch_selected_character_id(
+            self.conn, ctx.author.name)
+        if not character_id:
+            await ctx.send("No character selected for this player.")
+            return
+
+        # Get inventory_id for the character
+        inventory_id = DatabaseIDFetch.get_inventory_id(
+            self.conn, character_id)
+        if not inventory_id:
+            await ctx.send("This character does not have an inventory.")
+            return
+
+        # Get items in the inventory
+        items = InventoryDatabase.get_items_in_inventory(
+            self.conn, inventory_id)
+        if not items:
+            await ctx.send("Your inventory is empty.")
+            return
+
+        # Create an embed for each item with a Sell Button
+        for item in items:
+            item_name = item.get('item_name')
+            item_id = item.get('item_id')
+            spell_name = item.get('spell_name', 'None')  # Optional field
+            value = item.get('value', 0)
+
+            embed = discord.Embed(
+                title=item_name.title(),
+                description=f"**ID:** {item_id}\n**Spell:** {spell_name}\n**Value:** {value} shards",
+                color=discord.Color.green()
+            )
+
+            view = View()
+            view.add_item(SellItemButton(item_id, item_name, value, self.conn))
+
+            await ctx.send(embed=embed, view=view)
+
 
 async def setup(bot):
     """Sets up connection"""
     conn = DatabaseConnection.get_connection()
     await bot.add_cog(Character(bot, conn))
+
+
+class SellItemButton(Button):
+    def __init__(self, item_id: int, item_name: str, value: int, conn):
+        super().__init__(label=f"Sell {item_name}",
+                         style=discord.ButtonStyle.red)
+        self.item_id = item_id
+        self.item_name = item_name
+        self.value = value
+        self.conn = conn
+
+    async def callback(self, interaction: discord.Interaction):
+        # Sell the item (remove from inventory and add shards)
+        success = InventoryDatabase.sell_item(
+            self.conn, self.item_id, interaction.user.name)
+
+        if success:
+            await interaction.response.edit_message(content=f"✅ Sold {self.item_name} for {self.value} shards!", embed=None, view=None)
+        else:
+            await interaction.response.edit_message(content="⚠️ Could not sell the item!", embed=None, view=None)
