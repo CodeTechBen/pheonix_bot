@@ -206,7 +206,7 @@ class Character(commands.Cog):
             # Calculate the time difference from the last crafted event
             time_since_last = datetime.now() - last_crafted
             # If the player crafted in the last 3 hours, block the crafting
-            if time_since_last > timedelta(hours=3):
+            if time_since_last < timedelta(hours=3):
                 await ctx.send(f"You can't craft right now. Please wait {3 - time_since_last.seconds // 3600} hour(s) before crafting again.")
                 return
 
