@@ -287,7 +287,7 @@ class InventoryDatabase:
     """Handles inventory-related database operations"""
 
     @classmethod
-    def get_items_in_inventory(cls, conn: connection, inventory_id: int):
+    def get_items_in_inventory(cls, conn: connection, inventory_id: int) -> dict:
         """Fetches all items in the specified inventory."""
         with conn.cursor() as cursor:
             cursor.execute("""
@@ -350,6 +350,105 @@ class InventoryDatabase:
             conn.rollback()
             return False
     
+    @classmethod
+    def buy_item(cls, conn: connection, item_id: int, seller_name: str, buyer_name: str, value: int) -> bool:
+        """
+        Checks if the buyer has enough shards to buy the item.
+        Transfers the item from the seller's inventory to the buyer's inventory.
+        Deducts the amount from the buyer and adds it to the seller's shards.
+        """
+        try:
+            with conn.cursor() as cursor:
+                # Get buyer character_id
+                cursor.execute("""
+                    SELECT c.character_id 
+                    FROM character AS c
+                    JOIN player AS p ON p.player_id = c.player_id
+                    WHERE p.player_name = %s AND c.selected_character = TRUE
+                """, (buyer_name,))
+                buyer_character_id = cursor.fetchone()
+
+                if not buyer_character_id:
+                    return False
+
+                buyer_character_id = buyer_character_id.get('character_id')
+
+                # Get seller character_id
+                cursor.execute("""
+                    SELECT c.character_id 
+                    FROM character AS c
+                    JOIN player AS p ON p.player_id = c.player_id
+                    WHERE p.player_name = %s AND c.selected_character = TRUE
+                """, (seller_name,))
+                seller_character_id = cursor.fetchone()
+
+                if not seller_character_id:
+                    return False  # Seller does not have a selected character
+
+                seller_character_id = seller_character_id.get('character_id')
+
+                # Check if buyer has enough shards
+                cursor.execute(
+                    "SELECT shards FROM character WHERE character_id = %s", (buyer_character_id,))
+                buyer_shards = cursor.fetchone()
+
+                if not buyer_shards or buyer_shards.get('shards') < value:
+                    return False  # Buyer does not have enough shards
+
+                # Transfer the item to the buyer's inventory
+                cursor.execute("""
+                    UPDATE "item"
+                    SET inventory_id = (
+                        SELECT i.inventory_id
+                        FROM inventory AS i
+                        WHERE i.character_id = %s
+                        LIMIT 1
+                    ), is_selling = FALSE, listed_value = NULL
+                    WHERE item_id = %s
+                """, (buyer_character_id, item_id))
+
+                # Deduct shards from buyer
+                cursor.execute("""UPDATE character SET shards = shards - %s WHERE character_id = %s""",
+                            (value, buyer_character_id))
+
+                # Add shards to seller
+                cursor.execute("""UPDATE character SET shards = shards + %s WHERE character_id = %s""",
+                            (value, seller_character_id))
+                
+                # Retrieve event_type_id for "Buy"
+                cursor.execute(
+                    "SELECT event_type_id FROM event_type WHERE event_name = 'Buy';")
+                buy_event = cursor.fetchone()
+                buy_event_id = buy_event.get('event_type_id') if buy_event else None
+
+                # Retrieve event_type_id for "Sell"
+                cursor.execute(
+                    "SELECT event_type_id FROM event_type WHERE event_name = 'Sell';")
+                sell_event = cursor.fetchone()
+                sell_event_id = sell_event.get('event_type_id') if sell_event else None
+                
+                # Log event for buyer (Buy event)
+                cursor.execute("""
+                    INSERT INTO character_event (character_id, item_id, event_type_id)
+                    VALUES (%s, %s, %s);
+                """, (buyer_character_id, item_id, buy_event_id))
+
+                # Log event for seller (Sell event)
+                cursor.execute("""
+                    INSERT INTO character_event (character_id, item_id, event_type_id)
+                    VALUES (%s, %s, %s);
+                """, (seller_character_id, item_id, sell_event_id))
+
+                # Commit transaction
+                conn.commit()
+                return True
+
+        except Exception as e:
+            conn.rollback()
+            print(f"Error processing item purchase: {e}")
+            return False
+
+
 
     @classmethod
     def set_sellable_item(cls, conn: connection, item_id: int, value: int) -> bool:
@@ -375,6 +474,22 @@ class InventoryDatabase:
             print(f"Error setting item as sellable: {e}")
             return False
 
+    @classmethod
+    def get_marketplace(cls, conn: connection) -> dict:
+        """Gets all items classified as being sold"""
+        with conn.cursor() as cursor:
+            cursor.execute("""
+                SELECT i.item_id, i.item_name, i.listed_value, c.character_name, p.player_name
+                           FROM item AS i
+                           JOIN inventory AS inv
+                           ON i.inventory_id = inv.inventory_id
+                           JOIN character AS c
+                           ON inv.character_id = c.character_id
+                           JOIN player AS p
+                           ON c.player_id = p.player_id
+                           WHERE i.is_selling = TRUE;""")
+            return cursor.fetchall()
+
 
 
 class EmbedHelper:
@@ -395,7 +510,7 @@ class EmbedHelper:
         return embed
 
     @classmethod
-    def create_inventory_embed(cls, ctx: commands.Context, items: dict) -> discord.Embed:
+    def create_inventory_embed(cls, ctx: commands.Context, items: list[dict]) -> discord.Embed:
         """Creates an embed to display the inventory items."""
         embed = discord.Embed(
             title=f"{ctx.author.display_name}'s Inventory",

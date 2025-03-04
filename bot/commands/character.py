@@ -368,7 +368,7 @@ class Character(commands.Cog):
         for item in items:
             item_name = item.get('item_name')
             item_id = item.get('item_id')
-            spell_name = item.get('spell_name', 'None')  # Optional field
+            spell_name = item.get('spell_name', 'None')  # Not currently being queried
             value = item.get('value', 0)
 
             embed = discord.Embed(
@@ -413,6 +413,33 @@ class Character(commands.Cog):
         except ValueError:
             await ctx.send("⚠️ Please provide both an item ID and a value separated by a space.")
 
+    @commands.command()
+    async def marketplace(self, ctx: commands.Context):
+        """Prints the marketplace"""
+        items = InventoryDatabase.get_marketplace(self.conn)
+        # Create an embed for each item with a Sell Button
+        for item in items:
+            print(item)
+            item_name = item.get('item_name')
+            item_id = item.get('item_id')
+            spell_name = item.get('spell_name', 'None')  # Not currently working
+            value = item.get('listed_value', 0)
+            player_name = item.get('player_name')
+            character_name = item.get('character_name')
+
+            embed = discord.Embed(
+                title=item_name.title(),
+                description=f"**ID:** {item_id}\n**Spell:** {spell_name}\n**Value:** {value} shards",
+                color=discord.Color.green()
+            )
+            embed.add_field(
+                name="Sold by", value=f"{player_name} as {character_name}")
+
+            view = View()
+            view.add_item(BuyItemButton(item_id, item_name, player_name, value, self.conn))
+
+            await ctx.send(embed=embed, view=view)
+
 
 async def setup(bot):
     """Sets up connection"""
@@ -438,3 +465,24 @@ class SellItemButton(Button):
             await interaction.response.edit_message(content=f"✅ Sold {self.item_name} for {self.value} shards!", embed=None, view=None)
         else:
             await interaction.response.edit_message(content="⚠️ Could not sell the item!", embed=None, view=None)
+
+
+class BuyItemButton(Button):
+    def __init__(self, item_id: int, item_name: str, player_name, value: int, conn):
+        super().__init__(label=f"Buy {item_name}",
+                         style=discord.ButtonStyle.red)
+        self.item_id = item_id
+        self.item_name = item_name
+        self.player_name = player_name
+        self.value = value
+        self.conn = conn
+
+    async def callback(self, interaction: discord.Interaction):
+        # Sell the item (remove from inventory and add shards)
+        success = InventoryDatabase.buy_item(
+            self.conn, self.item_id, self.player_name, interaction.user.name, self.value)
+
+        if success:
+            await interaction.response.edit_message(content=f"✅ Sold {self.item_name} for {self.value} shards!", embed=None, view=None)
+        else:
+            await interaction.response.edit_message(content="⚠️ Could not Buy the item!", embed=None, view=None)
