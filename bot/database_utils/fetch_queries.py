@@ -296,6 +296,59 @@ class InventoryDatabase:
                 WHERE inventory_id = %s
             """, (inventory_id,))
             return cursor.fetchall()
+    
+    @classmethod
+    def sell_item(cls, conn, item_id: int, player_name: str) -> bool:
+        """Removes an item from the inventory and adds shards to the player."""
+        print(f'item_id: {item_id}')
+        print(f'player_name: {player_name}')
+        try:
+            with conn.cursor() as cursor:
+                # Get item value
+                cursor.execute(
+                    "SELECT value FROM item WHERE item_id = %s", (item_id,))
+                result = cursor.fetchone()
+                if not result:
+                    return False
+                print(result)
+                item_value = result.get('value')
+                print(item_value)
+                # Get character ID
+                cursor.execute("SELECT character_id FROM character WHERE player_id = (SELECT player_id FROM player WHERE player_name = %s) LIMIT 1",
+                            (player_name,))
+                result = cursor.fetchone()
+                character_id = result.get('character_id')
+                print(character_id)
+                # Remove item from inventory
+                cursor.execute(
+                    "DELETE FROM item WHERE item_id = %s", (item_id,))
+
+                # Add shards to character
+                cursor.execute(
+                    "UPDATE character SET shards = shards + %s WHERE character_id = %s", (item_value, character_id))
+
+                cursor.execute(
+                    "SELECT event_type_id FROM event_type WHERE event_name = 'Sell';"
+                )
+
+                result = cursor.fetchone()
+                event_type_id = result.get('event_type_id')
+                print(event_type_id)
+                
+                # Add buying event to Database
+
+                cursor.execute("""
+                INSERT INTO character_event (character_id, item_id, event_type_id)
+                VALUES (%s, %s, %s);
+                """, (character_id, item_id, event_type_id))
+
+
+                conn.commit()
+                return True
+        except Exception as e:
+            print(f"Error selling item: {e}")
+            conn.rollback()
+            return False
 
 
 class EmbedHelper:
