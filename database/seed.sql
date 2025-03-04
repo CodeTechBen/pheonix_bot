@@ -78,5 +78,4 @@ INSERT INTO event_type (event_name, event_description) VALUES
 ('Enchant', 'Enhancing an item with magical properties'),
 ('Combat', 'Engaging in a fight with an enemy'),
 ('Sell', 'Selling an item'),
-('Buy', 'Buying an item')
-;
+('Buy', 'Buying an item');
