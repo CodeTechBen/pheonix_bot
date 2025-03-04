@@ -349,6 +349,32 @@ class InventoryDatabase:
             print(f"Error selling item: {e}")
             conn.rollback()
             return False
+    
+
+    @classmethod
+    def set_sellable_item(cls, conn: connection, item_id: int, value: int) -> bool:
+        """Sets an item as sellable and sets the listed_value as value"""
+        try:
+            with conn.cursor() as cursor:
+                # Update the is_selling status to True and set the listed_value
+                cursor.execute("""
+                    UPDATE "item"
+                    SET "is_selling" = TRUE, "listed_value" = %s
+                    WHERE "item_id" = %s
+                """, (value, item_id))
+
+                # Commit the transaction
+                conn.commit()
+
+                # Check if any row was updated
+                if cursor.rowcount > 0:
+                    return True
+                return False
+        except Exception as e:
+            conn.rollback()
+            print(f"Error setting item as sellable: {e}")
+            return False
+
 
 
 class EmbedHelper:

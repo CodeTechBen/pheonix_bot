@@ -339,6 +339,79 @@ class Character(commands.Cog):
             view.add_item(SellItemButton(item_id, item_name, value, self.conn))
 
             await ctx.send(embed=embed, view=view)
+    
+
+    @commands.command()
+    async def sell(self, ctx: commands.Context):
+        # Get character_id for the player
+        character_id = DatabaseIDFetch.fetch_selected_character_id(
+            self.conn, ctx.author.name)
+        if not character_id:
+            await ctx.send("No character selected for this player.")
+            return
+
+        # Get inventory_id for the character
+        inventory_id = DatabaseIDFetch.get_inventory_id(
+            self.conn, character_id)
+        if not inventory_id:
+            await ctx.send("This character does not have an inventory.")
+            return
+
+        # Get items in the inventory
+        items = InventoryDatabase.get_items_in_inventory(
+            self.conn, inventory_id)
+        if not items:
+            await ctx.send("Your inventory is empty.")
+            return
+
+        # Create and send embeds for each item in the inventory
+        for item in items:
+            item_name = item.get('item_name')
+            item_id = item.get('item_id')
+            spell_name = item.get('spell_name', 'None')  # Optional field
+            value = item.get('value', 0)
+
+            embed = discord.Embed(
+                title=item_name.title(),
+                description=f"**ID:** {item_id}\n**Spell:** {spell_name}\n**Value:** {value} shards",
+                color=discord.Color.green()
+            )
+            await ctx.send(embed=embed)
+
+        await ctx.send('Select the id of the item you want to sell and its value')
+
+        def check(m):
+            # Ensure the message contains item ID and value
+            parts = m.content.split()
+            return m.author == ctx.author and m.channel == ctx.channel and len(parts) == 2 and all(part.isdigit() for part in parts)
+
+        try:
+            # Wait for the player's response
+            msg = await self.bot.wait_for("message", timeout=30.0, check=check)
+            item_id, value = msg.content.split()
+            item_id = int(item_id)
+            value = int(value)
+
+            # Check if the item exists in the inventory
+            if item_id not in [item.get('item_id') for item in items]:
+                await ctx.send('Select a listed item')
+                return
+
+            # Set the item as sellable in the database
+            success = InventoryDatabase.set_sellable_item(
+                self.conn, item_id, value)
+            if success:
+                # Find the item name for the confirmation message
+                item_name = next(item.get('item_name')
+                                for item in items if item.get('item_id') == item_id)
+                await ctx.send(f"✅ Listed {item_name} for {value} shards!")
+            else:
+                await ctx.send("⚠️ Could not list the item!")
+
+        except TimeoutError:
+            await ctx.send("⏳ You took too long to respond. Try again.")
+        except ValueError:
+            await ctx.send("⚠️ Please provide both an item ID and a value separated by a space.")
 
 
 async def setup(bot):
