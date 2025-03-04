@@ -3,7 +3,7 @@ from datetime import datetime
 import discord
 from discord.ext import commands
 from psycopg2.extensions import connection
-
+import psycopg2
 from .fetch_queries import DatabaseIDFetch
 
 class DataInserter:
@@ -360,3 +360,45 @@ class DataInserter:
                 return f"""{player_name.title()} has received **{profit}** shards!
     You now have **{new_shards}** in your wallet."""
             return f"No selected character found for {player_name}."
+
+
+    @classmethod
+    def add_character_image(cls, conn, player_name: str, image_url: str) -> str:
+        """Adds a character image to the selected player character"""
+
+        query_select = """
+                SELECT c.character_id
+                FROM "character" c
+                JOIN player p ON c.player_id = p.player_id
+                WHERE p.player_name = %s
+                AND c.selected_character = TRUE
+        """
+
+        query_update = """
+            UPDATE "character"
+            SET image_url = %s
+            WHERE character_id = %s;
+        """
+
+        try:
+            with conn.cursor() as cursor:
+                # Get the character_id of the selected character
+                cursor.execute(query_select, (player_name,))
+                result = cursor.fetchone()
+                print(result)
+
+                if result is None:
+                    return f"No selected character found for player '{player_name}'."
+
+                character_id = result.get('character_id')
+                print(character_id)
+
+                # Update the character's image URL
+                cursor.execute(query_update, (image_url, character_id))
+                conn.commit()
+
+                return f"Successfully updated image for {player_name}'s character."
+
+        except psycopg2.Error as e:
+            conn.rollback()
+            return f"Database error: {str(e)}"

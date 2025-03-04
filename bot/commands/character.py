@@ -7,6 +7,7 @@
 - !inventory: lets the player view their inventory
 """
 from random import randint
+import re
 from datetime import datetime, timedelta
 import discord
 from discord.ext import commands
@@ -237,6 +238,7 @@ class Character(commands.Cog):
         embed = EmbedHelper.create_inventory_embed(ctx, items)
         await ctx.send(embed=embed)
 
+
     def create_item(self, conn: connection, player_name: str, item_name: str, item_value: int) -> str:
         """Attempts to create an item based on the player's craft skill."""
         DataInserter.update_last_event(conn, player_name, 'Craft', datetime.now())
@@ -254,6 +256,38 @@ class Character(commands.Cog):
         item_id = DataInserter.insert_item_player_inventory(
             conn, item_name, item_value, character_id)
         return f"{player_name.title()} successfully crafted '{item_name}' (Value: {item_value} {'shard' if item_value == 1 else 'shards'})!"
+
+
+    def validate_image_url(self, image_url: str) -> bool:
+        """Validates an image URL"""
+        pattern = r'https?://.*\.(?:jpg|jpeg|png|svg)'
+        return True if re.match(pattern, image_url, re.IGNORECASE) else False
+
+
+    @commands.command()
+    async def character_image(self, ctx: commands.Context, image_url: str = None):
+        """Allows the player to associate an image with their character using a URL to a hosted image file"""
+        print('running character_image')
+        if image_url:
+            print(image_url)
+            valid = self.validate_image_url(image_url)
+            print(valid)
+            if valid:
+                print('is valid image')
+        elif ctx.message.attachments:
+            image_url = ctx.message.attachments[0].url
+            print(image_url)
+            valid = self.validate_image_url(image_url)
+        else:
+            valid = False
+
+        if not valid:
+            await ctx.send("Please send a valid image URL or attach an image!")
+            return
+
+        # Call the DataInserter method properly
+        DataInserter.add_character_image(self.conn, ctx.author.name, image_url)
+        await ctx.send("Character image has been updated successfully!")
 
 
 async def setup(bot):
