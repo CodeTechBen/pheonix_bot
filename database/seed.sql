@@ -8,7 +8,19 @@ INSERT INTO spell_status (status_name, status_description) VALUES
 ('Poisoned', 'The target takes damage over time'),
 ('Charmed', 'The target won`t attack the caster'),
 ('Regenerating', 'The target is regenerating'),
-('Blessed', 'Cures all status effects');
+('Blessed', 'Cures all status effects'),
+('Confusion', 'Mana is hidden and randomized'),
+('Mana Boost', 'Maximum Mana is increased'),
+('Health Boost', 'Maximum Health is increased')
+('Extreme Speed', 'Target increases speed'),
+('Armor', 'Reduce attack damage against you'),
+('Taunt', 'Enemy has to target you'),
+('Fire Weakness', 'Target takes extra damage from Fire moves'),
+('Water Weakness', 'Target takes extra damage from Water moves'),
+('Earth Weakness', 'Target takes extra damage from Earth moves'),
+('Air Weakness', 'Target takes extra damage from Air moves'),
+('Leech', 'Target takes some damage and you heal');
+
 
 -- Insert default elements
 INSERT INTO element (element_name) VALUES
@@ -47,7 +59,8 @@ INSERT INTO weather (weather_name) VALUES
 ('Flash Flood'),
 ('Volcanic Eruption'),
 ('Tectonic Shifts'),
-('Incursion');
+('Incursion'),
+('Blood Moon');
 
 
 -- default spell types
@@ -65,5 +78,4 @@ INSERT INTO event_type (event_name, event_description) VALUES
 ('Enchant', 'Enhancing an item with magical properties'),
 ('Combat', 'Engaging in a fight with an enemy'),
 ('Sell', 'Selling an item'),
-('Buy', 'Buying an item')
-;
+('Buy', 'Buying an item');
