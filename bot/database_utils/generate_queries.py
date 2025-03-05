@@ -126,7 +126,6 @@ class DataInserter:
         with conn.cursor() as cursor:
             # Get the character_id of the selected character for the given player
             character_id = DatabaseIDFetch.fetch_selected_character_id(conn, player_name)
-            print(character_id)
 
             # Retrieve all event_type_id from the event_type table
             cursor.execute("""
@@ -138,7 +137,6 @@ class DataInserter:
             # Insert an event for each event type with the current timestamp
             for event in event_types:
                 event_type_id = event['event_type_id']
-                print(event_type_id)
                 cursor.execute("""
                     INSERT INTO "character_event" (character_id, event_type_id, event_timestamp)
                     VALUES (%s, %s, NOW());
@@ -385,13 +383,11 @@ class DataInserter:
                 # Get the character_id of the selected character
                 cursor.execute(query_select, (player_name,))
                 result = cursor.fetchone()
-                print(result)
 
                 if result is None:
                     return f"No selected character found for player '{player_name}'."
 
                 character_id = result.get('character_id')
-                print(character_id)
 
                 # Update the character's image URL
                 cursor.execute(query_update, (image_url, character_id))
@@ -402,3 +398,29 @@ class DataInserter:
         except psycopg2.Error as e:
             conn.rollback()
             return f"Database error: {str(e)}"
+    
+
+    @classmethod
+    def select_new_character(self, conn: connection, player_id, server_id, character_id):
+        with conn.cursor() as cursor:
+            try:
+                cursor.execute(
+                    """UPDATE character
+                    SET selected_character = False
+                    WHERE player_id = %s AND server_id = %s""",
+                    (player_id, server_id)
+                )
+
+                cursor.execute(
+                    """UPDATE character
+                    SET selected_character = True
+                    WHERE character_id = %s AND server_id = %s""",
+                    (character_id, server_id)
+                )
+            except Exception as e:
+                conn.rollback()
+                print(e)
+                return False
+            
+            conn.commit()
+            return True

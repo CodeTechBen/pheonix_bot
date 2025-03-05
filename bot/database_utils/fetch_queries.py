@@ -181,6 +181,34 @@ class DatabaseMapper:
             cursor.execute(query, (ctx.author.name,))
             return cursor.fetchall()
 
+    @classmethod
+    def get_players_characters(cls, conn: connection, ctx: commands.Context) -> list[dict]:
+        """Returns a list of all characters, including race_name and class_name, each entry is a dictionary"""
+        with conn.cursor() as cursor:
+            try:
+                cursor.execute("""
+                    SELECT c.player_id,
+                            c.character_id,
+                            c.character_name,
+                            c.health,
+                            c.mana,
+                            c.craft_skill,
+                            c.shards,
+                            c.experience,
+                            c.image_url,
+                            r.race_name,
+                            cl.class_name
+                    FROM character AS c
+                    JOIN race AS r ON c.race_id = r.race_id
+                    JOIN class AS cl ON c.class_id = cl.class_id
+                    WHERE c.player_id = (
+                        SELECT player_id FROM player WHERE player_name = %s
+                    );
+                """, (ctx.author.name,))
+            except Exception as e:
+                print(e)
+            return cursor.fetchall()
+
 
     @classmethod
     def get_potential_player_spells(cls, conn: connection, ctx: commands.Context) -> list[dict]:
