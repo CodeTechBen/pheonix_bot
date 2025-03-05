@@ -440,6 +440,50 @@ class Character(commands.Cog):
 
             await ctx.send(embed=embed, view=view)
 
+    @commands.command()
+    async def select_character(self, ctx: commands.Context):
+        """Creates an embed for each character a player has with a button to select that character"""
+        print("Select character")
+        try:
+            characters = DatabaseMapper.get_players_characters(self.conn, ctx)
+            print(characters)
+            embeds = []
+            views = []
+
+            for character in characters:
+                print(character)
+                embed = discord.Embed(
+                    title=character["character_name"],
+                    description=f"{character['race_name']} {character['class_name']}",
+                    color=discord.Color.green()
+                )
+                embed.add_field(name="Health", value=character["health"])
+                embed.add_field(name="Mana", value=character["mana"])
+                embed.add_field(name="Craft Skill", value=character["craft_skill"])
+                embed.add_field(name="Experience", value=character["experience"])
+
+                image_url = character.get("image_url")
+                if image_url:
+                    embed.set_image(url=image_url)
+
+                view = View()
+                view.add_item(CharacterSelectButton(
+                    player_id=character["player_id"],
+                    server_id=ctx.guild.id,
+                    character_name=character["character_name"],
+                    character_id=character["character_id"],
+                    conn=self.conn
+                ))
+
+                embeds.append(embed)
+                views.append(view)
+
+            for embed, view in zip(embeds, views):
+                print(embed, view)
+                await ctx.send(embed=embed, view=view)
+        except Exception as e:
+            print(e)
+
 
 async def setup(bot):
     """Sets up connection"""
@@ -448,7 +492,7 @@ async def setup(bot):
 
 
 class SellItemButton(Button):
-    def __init__(self, item_id: int, item_name: str, value: int, conn):
+    def __init__(self, item_id: int, item_name: str, value: int, conn: connection):
         super().__init__(label=f"Sell {item_name}",
                          style=discord.ButtonStyle.red)
         self.item_id = item_id
@@ -468,7 +512,7 @@ class SellItemButton(Button):
 
 
 class BuyItemButton(Button):
-    def __init__(self, item_id: int, item_name: str, player_name, value: int, conn):
+    def __init__(self, item_id: int, item_name: str, player_name, value: int, conn: connection):
         super().__init__(label=f"Buy {item_name}",
                          style=discord.ButtonStyle.red)
         self.item_id = item_id
@@ -478,7 +522,7 @@ class BuyItemButton(Button):
         self.conn = conn
 
     async def callback(self, interaction: discord.Interaction):
-        # Sell the item (remove from inventory and add shards)
+        """Sells the item (remove from inventory and add shards)"""
         success = InventoryDatabase.buy_item(
             self.conn, self.item_id, self.player_name, interaction.user.name, self.value)
 
@@ -486,3 +530,25 @@ class BuyItemButton(Button):
             await interaction.response.edit_message(content=f"✅ Sold {self.item_name} for {self.value} shards!", embed=None, view=None)
         else:
             await interaction.response.edit_message(content="⚠️ Could not Buy the item!", embed=None, view=None)
+
+
+class CharacterSelectButton(Button):
+    def __init__(self, player_id: int, server_id: int, character_name: str, character_id: int, conn: connection):
+        super().__init__(label=f"Select Character {character_name}",
+                         style=discord.ButtonStyle.blurple)
+        self.player_id = player_id
+        self.server_id = server_id
+        self.character_id = character_id
+        self.character_name = character_name
+        self.conn = conn
+
+    async def callback(self, interaction: discord.Interaction):
+        """This functions runs when the button is pressed.
+        It completes the character selection and notifies the player"""
+        success = DataInserter.select_new_character(
+            self.conn, self.player_id, self.server_id, self.character_id
+        )
+        if success:
+            await interaction.response.edit_message(content=f"✅ Now playing as {self.character_name}!", embed=None, view=None)
+        else:
+            await interaction.response.edit_message(content="⚠️ Could not select character!", embed=None, view=None)
