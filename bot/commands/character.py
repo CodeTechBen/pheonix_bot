@@ -19,7 +19,9 @@ from bot.database_utils import (DatabaseMapper,
                                 InventoryDatabase,
                                 EmbedHelper,
                                 DataInserter,
-                                DatabaseConnection)
+                                DatabaseConnection,
+                                UserInputHelper,
+                                SpellQuery)
 
 
 class Character(commands.Cog):
@@ -236,8 +238,12 @@ class Character(commands.Cog):
             return
 
         # Get items in the inventory
-        items = InventoryDatabase.get_items_in_inventory(
-            self.conn, inventory_id)
+        try:
+            items = InventoryDatabase.get_items_in_inventory(
+                self.conn, inventory_id)
+        except Exception as e:
+            print(e)
+        print(f'items: {items}')
         if not items:
             await ctx.send("Your inventory is empty.")
             return
@@ -483,6 +489,131 @@ class Character(commands.Cog):
                 await ctx.send(embed=embed, view=view)
         except Exception as e:
             print(e)
+
+
+    @commands.command()
+    async def enchant(self, ctx: commands.Context):
+        """Allows the player to enchant a item with a spell"""
+
+        # Choose an item from your inventory
+        player_id = DatabaseIDFetch.get_player_id(self.conn, ctx.author.name, ctx.guild.id)
+        character_id = DatabaseIDFetch.get_selected_character_id(self.conn, player_id)
+        inventory_id = DatabaseIDFetch.get_inventory_id(self.conn, character_id)
+        items = InventoryDatabase.get_non_enchanted_items_in_inventory(self.conn, inventory_id)
+
+        for item in items:
+            item_name = item.get('item_name')
+            item_id = item.get('item_id')
+            value = item.get('value', 0)
+
+            embed = discord.Embed(
+                title=item_name.title(),
+                description=f"**ID:** {item_id}\n**Value:** {value} shards",
+                color=discord.Color.green()
+            )
+            await ctx.send(embed=embed)
+
+        item_id = await UserInputHelper.get_input(ctx, self.bot, 'Enter the item ID of the item you want to enchant:')
+        # Check that item_id is in items
+        if item_id not in [item_id.get('item_id') for item_id in items]:
+            await ctx.send('please choose an item you have')
+        
+        spell_name = await UserInputHelper.get_input(ctx, self.bot, "📝 Enter the spell name:")
+        if not spell_name:
+            return
+
+        spell_description = await UserInputHelper.get_input(
+            ctx, self.bot, "📖 Enter spell description:")
+        if not spell_description:
+            return
+
+        spell_power = await UserInputHelper.get_input(
+            ctx, self.bot, "💥 Enter spell power (1-100):", int)
+        if spell_power is None:
+            return
+
+        mana_cost = 0
+
+        cooldown = await UserInputHelper.get_input(
+            ctx, self.bot, "⏳ Enter cooldown (in turns):", int, True)
+        if cooldown is None:
+            return
+
+
+        scaling_factor = await UserInputHelper.get_input(
+            ctx, self.bot, "🎚️ Enter scaling factor (0.1 - 2.0):", float)
+        if scaling_factor is None:
+            return
+
+        # Fetch spell types and elements
+        spell_types = DatabaseMapper.get_spell_type_map(self.conn)
+        if not spell_types:
+            await ctx.send("❌ No spell types found in the database.")
+            return
+
+        await ctx.send(embed=EmbedHelper.create_map_embed(
+            "📜 Spell Types", "Available spell types:", spell_types, discord.Color.blue()))
+        spell_type_id = await UserInputHelper.get_input(
+            ctx, self.bot, "⚡ Enter the **ID** of the spell type:", int)
+
+        if spell_type_id is None or spell_type_id not in spell_types:
+            await ctx.send("❌ Invalid spell type ID. Try again.")
+            return
+
+        # Fetch Elements
+        element_map = DatabaseMapper.get_element_map(self.conn)
+        await ctx.send(embed=EmbedHelper.create_map_embed(
+            "🔥 Elements", "Available Elements", element_map, discord.Color.red()))
+        element_id = await UserInputHelper.get_input(
+            ctx, self.bot, "🔥 Enter the **ID** of the element:", int)
+        if element_id not in element_map.values():
+            await ctx.send('❌ Invalid element ID. Try again.')
+            return
+        # Fetch spell statuses
+        spell_statuses = DatabaseMapper.get_spell_status_map(self.conn)
+        await ctx.send(embed=EmbedHelper.create_map_embed("🌀 Spell Status Effects",
+                                                          "Available status effects:",
+                                                          spell_statuses,
+                                                          discord.Color.purple()))
+        spell_status_id = await UserInputHelper.get_input(
+            ctx, self.bot, "🌀 Enter the **ID** of the spell status effect:", int, True)
+        spell_status_chance = await UserInputHelper.get_input(
+            ctx, self.bot, r"% chance of status condition!", int, True)
+        spell_duration = await UserInputHelper.get_input(
+            ctx, self.bot, "Duration of status condition (in turns)", int)
+        spell_difficulty = SpellQuery.get_spell_difficulty(spell_power, 50, cooldown, scaling_factor, spell_status_chance, spell_duration)
+        craft_skill_dict = DatabaseMapper.get_craft_skill(self.conn, ctx.author.name)
+        craft_skill = craft_skill_dict.get('craft_skill')
+
+        success_chance = SpellQuery.get_crafting_chance(craft_skill, spell_difficulty)
+        roll = randint(1, 100)
+
+        if roll > success_chance:
+            await ctx.send(f'Your enchant attempt failed with a {success_chance:.2f}% chance of success')
+            return
+        print('start generate_spell')
+        # Generate the spell with null for class_id and race_id
+        try:
+            spell_id = DataInserter.generate_spell(
+                self.conn, ctx.guild.id, spell_name, spell_description, spell_power,
+                mana_cost, cooldown, scaling_factor, spell_type_id, element_id,
+                spell_status_id, spell_status_chance, spell_duration
+            )
+        except Exception as e:
+            print(e)
+
+        if spell_id:  # Successfully created the spell
+            # Associate the created spell with the selected item
+            charges = randint(1, 5)
+            success = DataInserter.enchant_item(
+                self.conn, item_id, charges, spell_id)
+            if success:
+                await ctx.send(f"✨ Successfully enchanted your item '{item_id}' with the spell {spell_name} with {charges} charges!")
+            else:
+                await ctx.send("❌ Failed to enchant the item. Try again.")
+        else:
+            await ctx.send(f"❌ Failed to enchant the item. Try again.")
+
 
 
 async def setup(bot):

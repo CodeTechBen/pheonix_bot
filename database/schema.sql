@@ -172,6 +172,7 @@ CREATE TABLE "item"(
     "inventory_id" INTEGER NOT NULL,
     "is_selling" BOOLEAN NOT NULL DEFAULT FALSE,
     "spell_id" INTEGER DEFAULT NULL,
+    "spell_charges" INTEGER DEFAULT NULL,
     FOREIGN KEY ("inventory_id") REFERENCES "inventory"("inventory_id")
 );
 

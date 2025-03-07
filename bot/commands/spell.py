@@ -108,12 +108,12 @@ class Spell(commands.Cog):
             ctx, self.bot, "Duration of status condition (in turns)", int)
 
         # Generate the spell
-        response = DataInserter.generate_spell(
+        spell_id = DataInserter.generate_spell(
             self.conn, ctx.guild.id, spell_name, spell_description, spell_power,
             mana_cost, cooldown, scaling_factor, spell_type_id, element_id,
             spell_status_id, spell_status_chance, spell_duration, class_id, race_id
         )
-        await ctx.send(response)
+        await ctx.send(f'✨ Spell {spell_name} has been created! as ID: {spell_id}')
 
 async def setup(bot: commands.bot.Bot):
     """Sets up connection"""

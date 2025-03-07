@@ -3,7 +3,8 @@ from .fetch_queries import (DatabaseMapper,
                             DatabaseIDFetch,
                             UserInputHelper,
                             InventoryDatabase,
-                            EmbedHelper)
+                            EmbedHelper,
+                            SpellQuery)
 from .generate_queries import DataInserter
 
 
@@ -15,4 +16,5 @@ __all__ = [
     "InventoryDatabase",
     "EmbedHelper",
     "DataInserter",
+    "SpellQuery",
 ]
