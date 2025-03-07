@@ -315,13 +315,37 @@ class InventoryDatabase:
     """Handles inventory-related database operations"""
 
     @classmethod
-    def get_items_in_inventory(cls, conn: connection, inventory_id: int) -> dict:
+    def get_items_in_inventory(cls, conn: connection, inventory_id: int) -> list[dict]:
+        """Fetches all items in the specified inventory, including spell and element details if enchanted."""
+        print('getting items in inventory')
+        with conn.cursor() as cursor:
+            cursor.execute("""
+                SELECT i.item_id, i.item_name, i.value, i.spell_id,
+                    s.spell_name, s.spell_description, s.spell_power, 
+                    s.mana_cost, s.cooldown, s.scaling_factor, 
+                    e.element_name, s.spell_type_id, 
+                    s.race_id, s.class_id
+                FROM item i
+                LEFT JOIN spells s ON i.spell_id = s.spell_id
+                LEFT JOIN element e ON s.element_id = e.element_id
+                WHERE i.inventory_id = %s;
+            """, (inventory_id,))
+
+            items = cursor.fetchall()
+
+        return [dict(item) for item in items]
+
+
+    
+    @classmethod
+    def get_non_enchanted_items_in_inventory(cls, conn: connection, inventory_id: int) -> dict:
         """Fetches all items in the specified inventory."""
         with conn.cursor() as cursor:
             cursor.execute("""
                 SELECT item_id, item_name, value 
                 FROM item 
                 WHERE inventory_id = %s
+                AND spell_id IS NULL;
             """, (inventory_id,))
             return cursor.fetchall()
     
@@ -507,15 +531,16 @@ class InventoryDatabase:
         """Gets all items classified as being sold"""
         with conn.cursor() as cursor:
             cursor.execute("""
-                SELECT i.item_id, i.item_name, i.listed_value, c.character_name, p.player_name
-                           FROM item AS i
-                           JOIN inventory AS inv
-                           ON i.inventory_id = inv.inventory_id
-                           JOIN character AS c
-                           ON inv.character_id = c.character_id
-                           JOIN player AS p
-                           ON c.player_id = p.player_id
-                           WHERE i.is_selling = TRUE;""")
+                SELECT i.item_id, i.item_name, i.listed_value, 
+                    c.character_name, p.player_name, 
+                    s.spell_name  -- Fetch spell name if enchanted
+                FROM item AS i
+                JOIN inventory AS inv ON i.inventory_id = inv.inventory_id
+                JOIN character AS c ON inv.character_id = c.character_id
+                JOIN player AS p ON c.player_id = p.player_id
+                LEFT JOIN spells AS s ON i.spell_id = s.spell_id
+                WHERE i.is_selling = TRUE;
+                """)
             return cursor.fetchall()
 
 
@@ -537,9 +562,11 @@ class EmbedHelper:
                             value=f"ID: `{_id}`", inline=False)
         return embed
 
+
     @classmethod
     def create_inventory_embed(cls, ctx: commands.Context, items: list[dict]) -> discord.Embed:
-        """Creates an embed to display the inventory items."""
+        """Creates an embed to display the inventory items, including spell details if enchanted."""
+        print('getting inventory embed')
         embed = discord.Embed(
             title=f"{ctx.author.display_name}'s Inventory",
             description="Here are the items in your inventory:",
@@ -549,13 +576,28 @@ class EmbedHelper:
         for item in items:
             item_name = item.get('item_name')
             shards = item.get('value')
+
+            # Base item details
+            item_value_text = f"Value: {shards} {'shard' if shards == 1 else 'shards'}"
+            spell_text = ""
+
+            # Add spell details if enchanted
+            if item.get('spell_id'):
+                spell_text = (
+                    f"\n✨ **Enchanted with:** {item.get('spell_name')}\n"
+                    f"📖 *{item.get('spell_description')}*\n"
+                    f"💥 Power: {item.get('spell_power')} | 🔥 Element: {item.get('element_name')}\n"
+                    f"⏳ Cooldown: {item.get('cooldown')} | 🎚️ Scaling: {item.get('scaling_factor')}"
+                )
+
             embed.add_field(
                 name=f"{item_name.title().replace('_', ' ')}",
-                value=f"Value: {shards} {'shard' if shards == 1 else 'shards'}",
+                value=item_value_text + spell_text,
                 inline=False
             )
-            embed.add_field(name="ID:", value=item.get("item_id"))
+
         return embed
+
 
 
 class UserInputHelper:
@@ -591,3 +633,76 @@ class UserInputHelper:
         except Exception:
             await ctx.send("❌ Timed out. Please try again.")
             return None
+
+
+class SpellQuery:
+    """Handles queries on spells."""
+
+
+class SpellQuery:
+    """Handles queries on spells."""
+
+
+class SpellQuery:
+    """Handles queries on spells."""
+
+    @classmethod
+    def get_spell_difficulty(cls,
+                        spell_power: int,
+                        mana: int,
+                        cooldown: int,
+                        scaling_factor: float,
+                        spell_status_chance: int,
+                        spell_duration: int) -> int:
+        """Base value calculation"""
+        base_difficulty = (max(spell_power, 10) * max(scaling_factor, 0.7)) / 5
+        print(f'base_difficulty = {base_difficulty}')
+        # Cooldown penalty
+        cooldown_penalty = max(0.5, 1.2 - (cooldown / 12))
+        base_difficulty *= cooldown_penalty
+        print(f'cooldown_penalty = {cooldown_penalty}')
+        print(f'base_difficulty = {base_difficulty}')
+        # Status effects significantly increase difficulty
+        # 100% status → 4x multiplier
+        status_bonus = max(1, spell_status_chance / 25)
+        base_difficulty *= status_bonus
+        print(f'status_bonus = {status_bonus}')
+        print(f'base_difficulty = {base_difficulty}')
+        # Duration scaling: Now more punishing for long durations
+        duration_penalty = 4.0 ** (spell_duration)  # Grows faster
+        base_difficulty *= duration_penalty
+        print(f'duration_penalty = {duration_penalty}')
+        print(f'base_difficulty = {base_difficulty}')
+        # Mana scaling: Encourages efficiency
+        mana_factor = max(0.8, 2.5 - (mana / 40))
+        base_difficulty *= mana_factor
+        print(f'mana_factor = {mana_factor}')
+        print(f'base_difficulty = {base_difficulty}')
+
+        return int(min(base_difficulty, 1000))  # Cap at 1000
+
+    @classmethod
+    def get_crafting_chance(cls, craft_skill: int, spell_difficulty: int) -> float:
+        """Calculates the chance to craft a spell"""
+        chance = (craft_skill / (spell_difficulty * 2)) * 100
+        return min(chance, 95.0)  # Cap at 95%
+
+
+if __name__ == "__main__":
+    pass
+    # spell_power = 1
+    # mana = 50
+    # cooldown = 1
+    # scaling_factor = 1
+    # spell_status_chance = 50
+    # spell_duration = 3
+
+    # spell_difficulty = SpellQuery.get_spell_difficulty(
+    #     spell_power, mana, cooldown, scaling_factor, spell_status_chance, spell_duration
+    # )
+
+    # craft_skill = 100
+    # crafting_chance = SpellQuery.get_crafting_chance(craft_skill, spell_difficulty)
+
+    # print(f"Spell Value: {spell_difficulty} Gold")
+    # print(f"Crafting Chance: {crafting_chance:.2f}%")

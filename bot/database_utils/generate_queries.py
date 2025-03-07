@@ -1,5 +1,6 @@
 """functions that puts data into the database"""
 from datetime import datetime
+from random import randint
 import discord
 from discord.ext import commands
 from psycopg2.extensions import connection
@@ -173,6 +174,7 @@ class DataInserter:
                        class_id: int = None,
                        race_id: int = None):
         """Inserts a new spell into the database and assigns its status."""
+        print('generating spell!!!')
         try:
             with conn.cursor() as cursor:
                 # Insert spell into spells table
@@ -213,8 +215,8 @@ class DataInserter:
 
                 # Commit transaction if everything is successful
                 conn.commit()
-
-            return f"✨ Spell `{spell_name}` has been created!"
+            print(f"✨ Spell `{spell_name}` has been created!")
+            return spell_id
 
         except Exception as e:
             conn.rollback()
@@ -424,3 +426,21 @@ class DataInserter:
             
             conn.commit()
             return True
+
+
+    @classmethod
+    def enchant_item(cls, conn: connection, item_id: int, charges: int, spell_id: int) -> bool:
+        """Allows a user to enchant an item with a spell."""
+        try:
+            with conn.cursor() as cursor:
+                enchant_query = """UPDATE item
+                                SET spell_id = %s
+                                SET spell_charges = %s
+                                WHERE item_id = %s"""
+                cursor.execute(enchant_query, (spell_id, charges, item_id))
+            conn.commit()
+            return True
+        except Exception as e:
+            print(f"Error enchanting item: {e}")
+            conn.rollback()
+            return False
