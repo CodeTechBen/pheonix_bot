@@ -434,8 +434,8 @@ class DataInserter:
         try:
             with conn.cursor() as cursor:
                 enchant_query = """UPDATE item
-                                SET spell_id = %s
-                                SET spell_charges = %s
+                                SET spell_id = %s,
+                                    spell_charges = %s
                                 WHERE item_id = %s"""
                 cursor.execute(enchant_query, (spell_id, charges, item_id))
             conn.commit()
