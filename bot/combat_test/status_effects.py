@@ -1,5 +1,6 @@
 """Defines all the status effects that a spell can have"""
 
+import time
 from random import randint
 from typing import TYPE_CHECKING
 
@@ -13,17 +14,16 @@ class Status:
         self.duration = duration
         self.max_duration = duration
 
+
     def apply_status(self, target) -> str:
-        """Applies a status to a target"""
+
         roll = randint(1, 100)
-        print('applying the effect')
         if roll < self.chance:
             new_status = type(self)(self.caster, self.power,
                                     self.chance, self.duration)
             target.status_effects.append(new_status)
-            print(f'target status effects = {target.status_effects}')
-            return f"{target.user.display_name} is now affected by {self.status}!\nDuration {self.duration} turns"
-        return f"{target.user.display_name} resisted {self.status}."
+        return f"{target.user.display_name} is now affected by {self.status}!" if roll < self.chance else f"{target.user.display_name} resisted {self.status}."
+
 
     def reduce_status(self, target) -> str:
         """Reduces status duration each turn"""
