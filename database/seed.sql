@@ -2,16 +2,16 @@
 INSERT INTO spell_status (status_name, status_description) VALUES
 ('None', 'No special status effect'),
 ('Paralyze', 'The target can`t move'),
-('Frozen', 'The target can`t move.'),
-('Burning', 'The target takes damage over time.'),
+('Frozen', 'The target is slowed.'),
+('Burning', 'The target takes fixed damage over time.'),
 ('Sleep', 'The target starts to feel drowsy'),
-('Poisoned', 'The target takes damage over time'),
+('Poisoned', 'The target takes percent damage over time'),
 ('Charmed', 'The target won`t attack the caster'),
 ('Regenerating', 'The target is regenerating'),
 ('Blessed', 'Cures all status effects'),
 ('Confusion', 'Mana is hidden and randomized'),
 ('Mana Boost', 'Maximum Mana is increased'),
-('Health Boost', 'Maximum Health is increased')
+('Health Boost', 'Maximum Health is increased'),
 ('Extreme Speed', 'Target increases speed'),
 ('Armor', 'Reduce attack damage against you'),
 ('Taunt', 'Enemy has to target you'),
@@ -67,8 +67,6 @@ INSERT INTO weather (weather_name) VALUES
 INSERT INTO spell_type (spell_type_name) VALUES
 ('Single Target'),
 ('Area of Effect'),
-('Buff'),
-('Debuff'),
 ('Passive');
 
 -- default event types

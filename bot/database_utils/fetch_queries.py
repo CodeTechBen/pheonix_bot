@@ -174,7 +174,7 @@ class DatabaseMapper:
                 LEFT JOIN spell_status ss ON sa.spell_status_id = ss.spell_status_id
                 WHERE p.player_name = %s
                 AND c.selected_character = TRUE
-                ORDER BY sa.spell_status_spell_assignment_id DESC
+                ORDER BY csa.time_added DESC
                 LIMIT 4;
                 """
         with conn.cursor() as cursor:
@@ -233,8 +233,8 @@ class DatabaseMapper:
                     ss.status_name,
                     sssa.chance,
                     sssa.duration
-                FROM spells s
-                JOIN selected_character sc
+                FROM selected_character sc
+                JOIN spells s
                     ON s.race_id = sc.race_id OR s.class_id = sc.class_id
                 JOIN element e ON s.element_id = e.element_id
                 LEFT JOIN spell_status_spell_assignment sssa ON s.spell_id = sssa.spell_id
