@@ -1,14 +1,13 @@
 """Defines the rules of combat"""
+
+# pylint: disable= line-too-long
 import asyncio
-import discord
 from random import randint, choice
+import discord
 from discord.ext import commands
-import discord.ext.commands
-from bot.database_utils import DatabaseConnection
-from psycopg2.extensions import connection
-
 import discord.ext
-
+from psycopg2.extensions import connection
+from bot.database_utils import DatabaseConnection
 from bot.combat_test.status_effects import (Paralyze,
                     Frozen,
                     Burning,
@@ -29,6 +28,7 @@ from bot.combat_test.status_effects import (Paralyze,
                     AirWeakness
 )
 class Player:
+    """A Player object for each character in the game"""
     def __init__(self, user: discord.User, conn: connection, cog: commands.Cog):
         self.cog = cog
         self.user = user
@@ -92,10 +92,11 @@ class Player:
                 """, (self.name,))
             return cursor.fetchone()
 
-    def take_damage(self, damage):
+    def take_damage(self, damage: int):
+        """Player takes damage equal to damage variable"""
         self.health -= damage
         return self.health <= 0
-    
+
     def get_equipped_spells(self, conn: connection) -> list[dict]:
         """Checks the last equipped spells"""
         query = """
@@ -127,7 +128,7 @@ class Player:
         with conn.cursor() as cursor:
             cursor.execute(query, (self.name,))
             return cursor.fetchall()
-    
+
     def get_exp(self, conn: connection, experience: int):
         """Adds experience to the player"""
         with conn.cursor() as cursor:
@@ -146,7 +147,8 @@ class Player:
                            """, (self.name, experience))
             new_experience = cursor.fetchone().get('experience')
             conn.commit()
-            return f"""{self.mention} has received **{experience}** experience points! They now have **{new_experience}** experience!"""
+            return f"""{self.mention} has received **{experience:.1f}** experience points!
+            They now have **{new_experience:.1f}** experience!"""
 
     def show_exp(self, conn: connection) -> int:
         """Returns their current amount of xp"""
@@ -161,17 +163,8 @@ class Player:
             return int(cursor.fetchone().get('experience'))
 
 
-class Item:
-    def __init__(self, name, spell, charges):
-        # TODO initialise a spell here!
-        self.name = name
-        self.spell = spell
-        self.charges = charges
-
-    def use(self, target):
-        return self.effect(target)
-
 class Spell:
+    """A Spell object that can be cast to damage a player or to inflict a status effect on them"""
     def __init__(self,
                  caster: str,
                  name: str,
@@ -231,7 +224,6 @@ class Spell:
         results = []
 
         for target in targets:
-            print(f'targets being casted upon{target.name}')
             if self.status:
                 results.append(self.status.apply_status(target))
             else:
@@ -239,62 +231,78 @@ class Spell:
 
         return results
 
-    
+
     def get_targets(self, caster: Player, players: list[Player]) -> list[Player]:
         """Determines valid targets for a spell"""
         # Initialize the list of targets based on the spell type
         if self.spell_type == "Single Target":
-            targets = [caster] + players  # User picks one target
-            print(f'single target {targets=}')
+            targets = [caster] + players
         elif self.spell_type == "Area of Effect":
-            # Hits everyone except caster
+
             targets = players
-            print(f'Area of Effect Targets {targets=}')
         elif self.spell_type == "Passive":
-            targets = [caster]  # Only affects the caster
-            print(f'Passive Targets {targets=}')
+            targets = [caster]
         else:
             targets = players
 
-        # Now go through each status effect and adjust the targets
         for status in caster.status_effects:
-            if hasattr(status, 'change_targets'):  # Check if status has change_targets method
+            if hasattr(status, 'change_targets'):
                 targets = status.change_targets(
-                    caster, targets)  # Modify the targets
-                print(f'{status.status} effected the target {targets}')
-
-        # Optionally print the targets after modification (for debugging)
-        # for target in targets:
-        #     print(target.name)
+                    caster, targets)
 
         return targets
 
 
+class Item:
+    """An item object that has a spell enchantment that a player can use"""
+
+    def __init__(self, name: str, spell: Spell, charges: int):
+        # TODO initialise a spell here!
+        self.name = name
+        self.spell = spell
+        self.charges = charges
+
+    def use(self, target: Player):
+        """Lets the player use the items effect on the target."""
+        return self.effect(target)
+
+    def effect(self):
+        """Users the spell effect"""
+        pass
 
 
 class Combat(commands.Cog):
     """Defines the combat class that will determine the phase of the combat
     and invoke effects that push the flow of the game
 
-    When the !combat command is made their should be a button that allows players to join with their selected character, When a player joins a message only they can see will say, you joined the battle with (SELECTED CHARACTER NAME) and the message should update with how many people have joined the battle;
+    When the !combat command is made their should be a button that allows
+    players to join with their selected character,
+    When a player joins a message only they can see will say,
+    you joined the battle with (SELECTED CHARACTER NAME) and the
+    message should update with how many people have joined the battle;
 
 
     The game will have phases:
-    - Standby Phase; Characters roll a die to determine who goes first with priority given to those with a higher speed.
-    - Status Phase; the turn player will take the impact of all status effects they are currently effected by and the status duration goes down.
-    - Attack Phase; The turn player chooses either spell (choose a spell), item (choose an item to use), meditate (regenerate mana), Run (Concede the battle).
-    - Target Phase; if the player chose item or spell they then choose a target to cast the spell or item on.
+    - Standby Phase; Characters roll a die
+    to determine who goes first with priority given to those with a higher speed.
+    - Status Phase; the turn player will take the impact of all status effects
+    they are currently effected by and the status duration goes down.
+    - Attack Phase; The turn player chooses either spell (choose a spell),
+    item (choose an item to use), meditate (regenerate mana), Run (Concede the battle).
+    - Target Phase; if the player chose item or spell.
+    then choose a target to cast the spell or item on.
 
     For each choice the player should be presented with buttons."""
     def __init__(self, bot: commands.Bot, conn: connection):
         self.bot = bot
         self.conn = conn
-        self.active_battles = {}  # Stores ongoing battles
+        self.active_battles = {}
         print('Combat cog loaded')
 
     @commands.command()
     async def combat(self, ctx):
-        battle_id = ctx.channel.id  # Unique battle per channel
+        """Commands the flow of combat by initializing the encounter"""
+        battle_id = ctx.channel.id
         self.active_battles[battle_id] = {
             "players": [],
             "turn_order": [],
@@ -311,6 +319,7 @@ class Combat(commands.Cog):
 
 
     async def start_battle(self, ctx: commands.Context, battle_id: int):
+        """Starts the battle by setting players and turn order"""
         battle = self.active_battles[battle_id]
         players = battle["players"]
 
@@ -326,80 +335,88 @@ class Combat(commands.Cog):
         battle["turn_order"] = turn_order
         battle["current_turn"] = turn_order[0]
 
-        await ctx.send(f"Battle has begun! {turn_order[0].mention if hasattr(turn_order[0], 'mention') else turn_order[0].name} goes first.")
+        await ctx.send(f"""Battle has begun! {turn_order[0].mention
+                                            if hasattr(turn_order[0], 'mention')
+                                            else turn_order[0].name} goes first.""")
 
         await self.next_turn(ctx, battle_id)
 
     async def next_turn(self, ctx: commands.Context, battle_id: int):
-        try:
-            battle = self.active_battles[battle_id]
-            turn_order = battle["turn_order"]
-            battle["turn_order"] = [
-                player for player in turn_order if player.health > 0]
+        """The flow of combat"""
+        battle = self.active_battles[battle_id]
+        turn_order = battle["turn_order"]
+        battle["turn_order"] = [
+            player for player in turn_order if player.health > 0]
 
-            turn_order = battle["turn_order"]
+        turn_order = battle["turn_order"]
 
-            
-            if len(turn_order) <= 1:
-                for player in battle.get('players'):
-                    await ctx.send(player.get_exp(self.conn, battle["experience"]))
-                winner = turn_order[0] if turn_order else None
-                await ctx.send(f'Because they won, {winner.get_exp(self.conn, battle["experience"])}')
-                await ctx.send(f"The battle is over! {winner.mention if hasattr(winner, 'mention') else winner.name} is the winner!" if winner else "The battle has ended with no winner.")
-                del self.active_battles[battle_id]
-                return
 
-            current_player = turn_order.pop(0)
-            battle["current_turn"] = current_player
-            turn_order.append(current_player)
-        
-            for status_effect in current_player.status_effects:
-                await ctx.send(f'{status_effect.reduce_status(current_player)}')
+        if len(turn_order) <= 1:
+            for player in battle.get('players'):
+                await ctx.send(player.get_exp(self.conn, battle["experience"]))
+            winner = turn_order[0] if turn_order else None
+            await ctx.send(f'Because they won, {winner.get_exp(self.conn, battle["experience"])}')
+            message = (
+                f"The battle is over! {winner.mention if hasattr(winner, 'mention') else winner.name} is the winner!"
+                if winner
+                else "The battle has ended with no winner."
+            )
+            await ctx.send(message)
+            del self.active_battles[battle_id]
+            return
 
-            for spell in current_player.spells:
-                # If Passive, cast immediately
-                if spell.spell_type == "Passive":
-                    if current_player.mana > spell.cost:
-                        result = spell.cast(current_player, current_player)
-                        asyncio.create_task(ctx.send(
-                            f"{current_player.mention} Passive effect activates **{spell.name}**!\n{result[0] if result else ''}"))
-                    else:
-                        asyncio.create_task(ctx.send(
-                            f"{current_player.mention} Passive effect **{spell.name}** fails to activate!"))
-            # Generate Health & Mana Bars
-            def generate_bar(value, max_value, length=10):
-                filled = int((value / max_value) * length)
-                return f"[{'█' * filled}{' ' * (length - filled)}] {value:.2f}/{max_value:.2f}"
+        current_player = turn_order.pop(0)
+        battle["current_turn"] = current_player
+        turn_order.append(current_player)
 
-            health_bar = generate_bar(
-                current_player.health, current_player.max_health)
-            mana_bar = generate_bar(current_player.mana, current_player.max_mana)
+        for status_effect in current_player.status_effects:
+            await ctx.send(f'{status_effect.reduce_status(current_player)}')
 
-            embed = discord.Embed(
-                title=f"{current_player.char_name}'s Turn", description=f"Whats your move {current_player.char_name}", color=discord.Color.blue())
-            embed.set_thumbnail(
-                url=current_player.image) if current_player.image else None
-            embed.add_field(name="Health", value=health_bar, inline=False)
-            embed.add_field(name="Mana", value=mana_bar, inline=False)
-            for i, status in enumerate(current_player.status_effects):
-                embed.add_field(name=f"Status {i+1}", value=status.status, inline=False)
+        for spell in current_player.spells:
+            # If Passive, cast immediately
+            if spell.spell_type == "Passive":
+                if current_player.mana > spell.cost:
+                    result = spell.cast(current_player, current_player)
+                    asyncio.create_task(ctx.send(
+                        f"{current_player.mention} Passive effect activates **{spell.name}**!\n{result[0] if result else ''}"))
+                else:
+                    asyncio.create_task(ctx.send(
+                        f"{current_player.mention} Passive effect **{spell.name}** fails to activate!"))
+        # Generate Health & Mana Bars
+        def generate_bar(value, max_value, length=10):
+            """Generates bars for health and mana"""
+            filled = int((value / max_value) * length)
+            return f"[{'█' * filled}{' ' * (length - filled)}] {value:.2f}/{max_value:.2f}"
 
-            if isinstance(current_player, EnemyAI):
-                await current_player.take_action(ctx, self, battle_id)
-            else:
-                targets = turn_order[:-1]
-                await ctx.send(embed=embed, view=ActionView(self, ctx, battle_id, current_player, targets))
-        except Exception as e:
-            print(e)
+        health_bar = generate_bar(
+            current_player.health, current_player.max_health)
+        mana_bar = generate_bar(current_player.mana, current_player.max_mana)
+
+        embed = discord.Embed(
+            title=f"{current_player.char_name}'s Turn", description=f"Whats your move {current_player.char_name}", color=discord.Color.blue())
+        if current_player.image:
+            embed.set_thumbnail(url=current_player.image)
+        embed.add_field(name="Health", value=health_bar, inline=False)
+        embed.add_field(name="Mana", value=mana_bar, inline=False)
+        for i, status in enumerate(current_player.status_effects):
+            embed.add_field(name=f"Status {i+1}", value=status.status, inline=False)
+
+        if isinstance(current_player, EnemyAI):
+            await current_player.take_action(ctx, self, battle_id)
+        else:
+            targets = turn_order[:-1]
+            await ctx.send(embed=embed, view=ActionView(self, ctx, battle_id, current_player, targets))
 
 
 class EnemyAI:
+    """An Enemy AI object that will make moves against human players"""
     def __init__(self):
         self.name = "Goblin Warrior"
         self.health = 20
         self.attack_damage = randint(3, 7)
 
     async def take_action(self, ctx: commands.Context, cog: Combat, battle_id: int):
+        """Lets the NPC choose a player and attack them"""
         battle = cog.active_battles[battle_id]
         players = [p for p in battle["players"] if not isinstance(p, EnemyAI)]
         if not players:
@@ -411,6 +428,7 @@ class EnemyAI:
 
 
 class JoinBattleView(discord.ui.View):
+    """The View that Players will be presented with to join combat"""
     def __init__(self, cog: Combat, ctx: commands.Context, battle_id: int, battle_message: str):
         super().__init__()
         self.cog = cog
@@ -421,7 +439,7 @@ class JoinBattleView(discord.ui.View):
 
     @discord.ui.button(label="Join Battle", style=discord.ButtonStyle.green)
     async def join_battle(self, interaction: discord.Interaction, button: discord.ui.Button):
-    
+        """A Button that allows the player to join combat"""
         user = interaction.user
         if user in self.players:
             await interaction.response.send_message("You've already joined!", ephemeral=True)
@@ -438,6 +456,7 @@ class JoinBattleView(discord.ui.View):
 
     @discord.ui.button(label="Start Battle", style=discord.ButtonStyle.blurple)
     async def start_battle(self, interaction: discord.Interaction, button: discord.ui.Button):
+        """Lets the players start combat with the number of players that has joined"""
         if len(self.players) > 1:
             await self.cog.start_battle(self.ctx, self.battle_id)
         else:
@@ -446,6 +465,7 @@ class JoinBattleView(discord.ui.View):
 
     @discord.ui.button(label="Cancel", style=discord.ButtonStyle.red)
     async def cancel_battle(self, interaction: discord.Interaction, button: discord.ui.Button):
+        """Stops battle if they change their mind"""
         if interaction.user != self.ctx.author:
             await interaction.response.send_message("Only the battle initiator can cancel!", ephemeral=True)
             return
@@ -456,7 +476,11 @@ class JoinBattleView(discord.ui.View):
 
 
 class ActionView(discord.ui.View):
-    """View for player actions."""
+    """View for player actions.
+    Casting a spell
+    Using an item
+    Meditating
+    or Fleeing"""
 
     def __init__(self, cog: Combat, ctx: commands.Context, battle_id: int, player: Player, targets: list[Player]):
         super().__init__()
@@ -527,6 +551,8 @@ class ActionView(discord.ui.View):
 
 
 async def setup(bot: commands.Bot):
+    """Sets up the combat cog with a database connection.
+    This allows the commands to be used by the Discord bot"""
     conn = DatabaseConnection.get_connection()
     await bot.add_cog(Combat(bot, conn))
 
@@ -552,7 +578,7 @@ class SpellButton(discord.ui.Button):
     """Button representing a spell"""
 
     def __init__(self, ctx: commands.Context, spell: Spell, player: Player, targets: list[Player], battle_id: int):
-        super().__init__(label=f'{spell.name}\n({spell.cost if player.mana_hidden == False else '???'}) mana', style=discord.ButtonStyle.green)
+        super().__init__(label=f'{spell.name}\n({spell.cost if player.mana_hidden is False else '???'}) mana', style=discord.ButtonStyle.green)
         self.ctx = ctx
         self.spell = spell
         self.player = player
@@ -583,9 +609,6 @@ class TargetSelectionView(discord.ui.View):
         self.battle_id = battle_id
 
         # Determine valid targets
-        
-
-        # If Area of Effect, create a single button to cast it
         if spell.spell_type == "Area of Effect":
             self.add_item(AOETargetButton(
                 ctx, spell, players, caster, battle_id))
@@ -595,7 +618,7 @@ class TargetSelectionView(discord.ui.View):
             for target in targets:
                 self.add_item(TargetButton(
                     ctx, spell, target, caster, battle_id))
-        
+
 
 class TargetButton(discord.ui.Button):
     """Button representing a target"""
@@ -615,7 +638,7 @@ class TargetButton(discord.ui.Button):
 
         await interaction.followup.send(f"{self.caster.mention} casts **{self.spell.name}** on {self.target.mention}!\n{result if result and isinstance(result, str) else ""}")
         await self.caster.cog.next_turn(self.ctx, self.battle_id)
-        if result == True:
+        if result is True:
             await self.ctx.send(f'{self.target.mention} has fainted')
 
 
@@ -651,4 +674,3 @@ class AOETargetButton(discord.ui.Button):
         for target in self.targets:
             if target.health <= 0:
                 await self.ctx.send(f"{target.mention} has fainted!")
-

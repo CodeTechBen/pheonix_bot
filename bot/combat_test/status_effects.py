@@ -1,11 +1,9 @@
 """Defines all the status effects that a spell can have"""
 
-import time
 from random import randint
-from typing import TYPE_CHECKING
-
 
 class Status:
+    """A Status base class object"""
     def __init__(self, status, caster: str, power: int, chance: int, duration: int):
         self.caster = caster
         self.status = status
@@ -27,7 +25,6 @@ class Status:
 
     def reduce_status(self, target) -> str:
         """Reduces status duration each turn"""
-        print('reducing the effect')
         if self.duration > 0:
             self.duration -= 1
         if self.duration == 0:
@@ -39,10 +36,12 @@ class Status:
     def change_targets(self, player, targets):
         """Default: Does nothing, override in subclasses if needed"""
         return [player] + targets
+
+
+
 # Specific Status Effect Classes
-
-
 class Paralyze(Status):
+    """A Paralysis object, that allows the player to skip a targets turn"""
     def __init__(self, caster, power, chance, duration):
         super().__init__("Paralyze", caster, power, chance, duration)
 
@@ -56,12 +55,13 @@ class Paralyze(Status):
         if self.duration == 0:
             target.can_move = True  # Restore movement
         return message
-    
+
     def change_targets(self, player, targets):
         return []
 
 
 class Frozen(Status):
+    """Slows a targets speed"""
     def __init__(self, caster, power, chance, duration):
         super().__init__("Frozen", caster, power, chance, duration)
 
@@ -78,6 +78,7 @@ class Frozen(Status):
 
 
 class Burning(Status):
+    """Burns the target for some damage over a duration"""
     def __init__(self, caster, power, chance, duration):
         super().__init__("Burning", caster, power, chance, duration)
 
@@ -89,6 +90,7 @@ class Burning(Status):
 
 
 class Poisoned(Status):
+    """Poisons the target for a percentage of health for a duration"""
     def __init__(self, caster, power, chance, duration):
         super().__init__("Poisoned", caster, power, chance, duration)
 
@@ -100,6 +102,7 @@ class Poisoned(Status):
 
 
 class Charmed(Status):
+    """Charms the target so they can't attack the target"""
     def __init__(self, caster, power, chance, duration):
         super().__init__("Charmed", caster, power, chance, duration)
 
@@ -113,7 +116,7 @@ class Charmed(Status):
         if self.duration == 0:
             target.cannot_attack_caster = False
         return message
-    
+
     def change_targets(self, player, targets):
         if self.caster in targets:
             targets.remove(self.caster)
@@ -121,31 +124,31 @@ class Charmed(Status):
 
 
 class Regenerating(Status):
+    """The target heals a percentage of power"""
     def __init__(self, caster, power, chance, duration):
         super().__init__("Regenerating", caster, power, chance, duration)
-    
+
     def reduce_status(self, target):
         heal = target.max_health * (self.power/100)  # 5% of max HP
         target.health += heal
-        if target.health > target.max_health:
-            target.health = target.max_health
+        target.health = min(target.health, target.max_health)
         message = super().reduce_status(target)
         return f"{target.user.display_name} regenerates {heal} HP!\n{message}" if message else f"{target.user.display_name} regenerates {heal} HP!"
 
 
 class Blessed(Status):
+    """The target removes all status effects"""
     def __init__(self, caster, power, chance, duration):
         super().__init__("Blessed", caster, power, chance, duration)
 
     def apply_status(self, target):
         target.status_effects.clear()
         return f"{target.user.display_name} is cleansed of all status effects!"
-    
-    def change_targets(self, caster, targets):
-        return super().change_targets(caster, targets)
+
 
 
 class Confusion(Status):
+    """The Target can't see the mana cost for their spells"""
     def __init__(self, caster, power, chance, duration):
         super().__init__("Confusion", caster, power, chance, duration)
 
@@ -162,6 +165,7 @@ class Confusion(Status):
 
 
 class ManaBoost(Status):
+    """The max mana the target has is boosted"""
     def __init__(self, caster, power, chance, duration):
         super().__init__("Mana Boost", caster, power, chance, duration)
         self.boost_amount = 1 + (power / 100)  # Scale increase by power
@@ -174,6 +178,7 @@ class ManaBoost(Status):
 
 
 class HealthBoost(Status):
+    """The max health of the target is boosted"""
     def __init__(self, caster, power, chance, duration):
         super().__init__("Health Boost", caster, power, chance, duration)
         self.boost_amount = 1 + (power / 100)  # Scale increase by power
@@ -181,6 +186,7 @@ class HealthBoost(Status):
 
 
 def apply_status(self, target):
+    """Applies the health boost effect"""
     target.max_health *= self.boost_amount
     target.health *= self.boost_amount
     return f"{target.user.display_name}'s max health increased by {round((self.boost_amount - 1) * 100, 2)}%!"
@@ -188,6 +194,7 @@ def apply_status(self, target):
 
 
 class ExtremeSpeed(Status):
+    """Massively increases the targets speed"""
     def __init__(self, caster, power, chance, duration):
         super().__init__("Extreme Speed", caster, power, chance, duration)
 
@@ -197,6 +204,7 @@ class ExtremeSpeed(Status):
 
 
 class Armor(Status):
+    """Increases the targets defense"""
     def __init__(self, caster, power, chance, duration):
         super().__init__("Armor", caster, power, chance, duration)
 
@@ -206,14 +214,16 @@ class Armor(Status):
 
 
 class Taunt(Status):
+    """The target can only target the caster"""
     def __init__(self, caster, power, chance, duration):
         super().__init__("Taunt", caster, power, chance, duration)
-    
+
     def change_targets(self, player, targets):
         return [self.caster]
 
 
 class Leech(Status):
+    """The target looses some health a turn and the caster gains that health"""
     def __init__(self, caster, power, chance, duration):
         super().__init__("Leech", caster, power, chance, duration)
 
@@ -232,6 +242,7 @@ class Leech(Status):
 # Weaknesses as specific subclasses
 
 class ElementalWeakness(Status):
+    """Sets a players elemental weakness"""
     def __init__(self, element: str):
         super().__init__(f"{element} Weakness", chance=100, duration=3)
         self.element = element
@@ -241,20 +252,24 @@ class ElementalWeakness(Status):
         return f"{target.user.display_name} is now weak to {self.element}!"
 
 class FireWeakness(ElementalWeakness):
+    """A fire weakness"""
     def __init__(self):
         super().__init__("Fire")
 
 
 class WaterWeakness(ElementalWeakness):
+    """A water weakness"""
     def __init__(self):
         super().__init__("Water")
 
 
 class EarthWeakness(ElementalWeakness):
+    """A Earth Weakness"""
     def __init__(self):
         super().__init__("Earth")
 
 
 class AirWeakness(ElementalWeakness):
+    """A Air weakness"""
     def __init__(self):
         super().__init__("Air")
