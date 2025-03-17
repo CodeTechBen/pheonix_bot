@@ -64,7 +64,24 @@ class Player:
             )
             for spell in self.get_equipped_spells(conn)
         ]
-        self.inventory = []
+
+        self.inventory = [
+            Item(item.get('item_name'),
+                Spell(self,
+                    item.get('spell_name'),
+                    item.get('spell_power'),
+                    0, # Mana cost
+                    item.get('cooldown'),
+                    item.get('element_name'),
+                    item.get('status_name'),
+                    item.get('chance'),
+                    item.get('duration'),
+                    item.get('spell_type_name')),
+                item.get('spell_charges')
+            )
+            for item in self.get_enchanted_inventory(conn)
+        ]
+
 
     def get_character_data(self, conn: connection) -> dict:
         """Gets data for the selected player character"""
@@ -128,6 +145,41 @@ class Player:
         with conn.cursor() as cursor:
             cursor.execute(query, (self.name,))
             return cursor.fetchall()
+    
+    def get_enchanted_inventory(self, conn: connection) -> list[dict]:
+        """Gets the inventory of the selected character that contains enchanted items using the player_name"""
+
+        query = """
+            SELECT 
+                i.item_name,
+                i.spell_charges,
+                s.spell_name,
+                s.spell_power,
+                s.cooldown,
+                e.element_name,
+                ss.status_name,
+                sa.chance,
+                sa.duration,
+                st.spell_type_name
+            FROM character c
+            JOIN player p ON c.player_id = p.player_id
+            JOIN inventory inv ON c.character_id = inv.character_id
+            JOIN item i ON inv.inventory_id = i.inventory_id
+            JOIN spells s ON i.spell_id = s.spell_id
+            JOIN element e ON s.element_id = e.element_id
+            LEFT JOIN spell_status_spell_assignment sa ON s.spell_id = sa.spell_id
+            LEFT JOIN spell_status ss ON sa.spell_status_id = ss.spell_status_id
+            JOIN spell_type st ON s.spell_type_id = st.spell_type_id
+            WHERE p.player_name = %s
+            AND c.selected_character = TRUE
+            AND i.spell_id IS NOT NULL
+            ORDER BY i.item_name;
+        """
+
+        with conn.cursor() as cursor:
+            cursor.execute(query, (self.name,))
+            return cursor.fetchall()
+
 
     def get_exp(self, conn: connection, experience: int):
         """Adds experience to the player"""
@@ -257,7 +309,6 @@ class Item:
     """An item object that has a spell enchantment that a player can use"""
 
     def __init__(self, name: str, spell: Spell, charges: int):
-        # TODO initialise a spell here!
         self.name = name
         self.spell = spell
         self.charges = charges
@@ -440,18 +491,23 @@ class JoinBattleView(discord.ui.View):
     @discord.ui.button(label="Join Battle", style=discord.ButtonStyle.green)
     async def join_battle(self, interaction: discord.Interaction, button: discord.ui.Button):
         """A Button that allows the player to join combat"""
+        
         user = interaction.user
         if user in self.players:
             await interaction.response.send_message("You've already joined!", ephemeral=True)
             return
 
         player = Player(user, self.cog.conn, self.cog)
+        
+
         self.players.append(user)
         self.cog.active_battles[self.battle_id]["players"].append(player)
         self.cog.active_battles[self.battle_id]["experience"] += max(
             (player.show_exp(self.cog.conn) / 10), 50)
+
         await self.battle_message.edit(content=f"{len(self.players)} players have joined the battle.")
         await interaction.response.send_message("You joined the battle!", ephemeral=True)
+
 
 
     @discord.ui.button(label="Start Battle", style=discord.ButtonStyle.blurple)
@@ -516,8 +572,7 @@ class ActionView(discord.ui.View):
             await interaction.response.send_message("It's not your turn!", ephemeral=True)
             return
 
-        await interaction.response.send_message("Choose an item!", ephemeral=True)
-        # TODO: Open item selection menu
+        await interaction.response.send_message("Choose an item!", view=ItemSelectionView(self.ctx, self.player, self.targets, self.battle_id), ephemeral=True)
 
     @discord.ui.button(label="Meditate", style=discord.ButtonStyle.gray)
     async def meditate(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -557,10 +612,25 @@ async def setup(bot: commands.Bot):
     await bot.add_cog(Combat(bot, conn))
 
 
+class ItemSelectionView(discord.ui.View):
+    """Creates a button foe each item"""
+
+    def __init__(self, ctx: commands.Command, player: Player, targets: list[Player], battle_id: int, timeout = 60):
+        super().__init__(timeout=timeout)
+        self.ctx = ctx
+        self.player = player
+        self.targets = targets
+        self.battle_id = battle_id
+
+        for item in self.player.inventory:
+            # No need for passives to get a button
+            if item.spell.spell_type != "Passive":
+                self.add_item(SpellButton(self.ctx, item.spell, self.player, self.targets, self.battle_id))
+
 class SpellSelectionView(discord.ui.View):
     """Dynamically creates buttons for each spell"""
 
-    def __init__(self, ctx: commands.Context, player: Player, targets: list[Player], battle_id: int,  timeout: int = 60):
+    def __init__(self, ctx: commands.Context, player: Player, targets: list[Player], battle_id: int, timeout: int = 60):
         super().__init__(timeout=timeout)
         self.ctx = ctx
         self.player = player
