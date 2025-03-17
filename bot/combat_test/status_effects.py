@@ -16,7 +16,7 @@ class Status:
 
 
     def apply_status(self, target) -> str:
-
+        """Applies a status effect object on the player"""
         roll = randint(1, 100)
         if roll < self.chance:
             new_status = type(self)(self.caster, self.power,
