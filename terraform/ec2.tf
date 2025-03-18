@@ -27,7 +27,7 @@ resource "aws_security_group" "ec2-sg" {
 }
 
 resource "aws_instance" "bot-ec2" {
-    ami = "ami-09a2a0f7d2db8baca"
+    ami = "ami-0a94c8e4ca2674d5a"
     instance_type = "t2.nano"
     
     subnet_id = data.aws_subnet.public-subnet.id
