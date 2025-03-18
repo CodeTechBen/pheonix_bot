@@ -24,6 +24,7 @@ from bot.database_utils import (DatabaseMapper,
                                 SpellQuery)
 
 
+
 class Character(commands.Cog):
     """Commands for managing player characters"""
 
@@ -31,41 +32,6 @@ class Character(commands.Cog):
         self.bot = bot
         self.conn = conn
         print("Character cog loaded")
-
-    @commands.command()
-    async def create_character(self,
-                               ctx: commands.Context,
-                               character_name: str = None,
-                               race_name: str = None,
-                               class_name: str = None):
-        """Creates a player character in the database"""
-        player_map = DatabaseMapper.get_player_mapping(self.conn, ctx.guild.id)
-        player_name = ctx.author.name
-        if player_name in player_map.keys():
-            player_id = player_map.get(player_name)
-        else:
-            player_id = DataInserter.create_player(ctx, self.conn)
-
-        character_map = DatabaseMapper.get_character_mapping(
-            self.conn, player_id)
-        if character_name in character_map.keys():
-            await ctx.send(f'{character_name} already exists, please choose a new name.')
-            return
-
-        race_map = DatabaseMapper.get_race_map(self.conn, ctx.guild.id)
-        class_map = DatabaseMapper.get_class_map(self.conn, ctx.guild.id)
-        race_id = race_map.get(race_name, None)
-        class_id = class_map.get(class_name, None)
-        if character_name and race_id and class_id:
-            response = DataInserter.generate_character(
-                self.conn, ctx, character_name, race_id, class_id, player_id)
-            DataInserter.generate_events_for_character(
-                self.conn, ctx.author.name)
-            DataInserter.generate_inventory_for_character(
-                self.conn, ctx.author.name)
-            await ctx.send(response)
-        else:
-            await ctx.send("Invalid character name, race or class. ")
 
     @commands.command()
     async def add_spell(self, ctx: commands.Context):
