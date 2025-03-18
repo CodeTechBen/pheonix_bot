@@ -12,6 +12,13 @@ resource "aws_security_group" "postgres-sg" {
     cidr_blocks = ["172.31.0.0/16"]
   }
 
+   ingress {
+    from_port   = 5432
+    to_port     = 5432
+    protocol    = "tcp"
+    cidr_blocks = ["86.129.86.154/32"]
+  }
+
   # Allow SSH from your public IP
   ingress {
     from_port   = 22
@@ -32,7 +39,7 @@ resource "aws_security_group" "postgres-sg" {
 
 # PostgreSQL EC2 instance
 resource "aws_instance" "postgres-ec2" {
-  ami                    = "ami-0a89c0e1fe86ef74e"
+  ami                    = "ami-09a2a0f7d2db8baca"
   instance_type          = "t2.micro"
   subnet_id              = data.aws_subnet.public-subnet.id
   security_groups        = [aws_security_group.postgres-sg.id]
