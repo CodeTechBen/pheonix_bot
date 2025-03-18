@@ -351,7 +351,7 @@ class Combat(commands.Cog):
         print('Combat cog loaded')
 
     @commands.command()
-    async def combat(self, ctx):
+    async def combat(self, ctx: commands.Context):
         """Commands the flow of combat by initializing the encounter"""
         battle_id = ctx.channel.id
         self.active_battles[battle_id] = {
