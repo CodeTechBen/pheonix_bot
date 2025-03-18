@@ -100,9 +100,78 @@ class CharacterCreateButton(ui.Button):
         await interaction.followup.send(f"Select a race for {self.cog.character_name}.", view=view, ephemeral=True)
 
 
+class CharacterSelectButtonItem(ui.Button):
+    """Button to select an existing character"""
+
+    def __init__(self, ctx: commands.Context, cog: CharacterCreation, character_name: str, character_id: int):
+        super().__init__(style=discord.ButtonStyle.blurple, label=character_name)
+        self.ctx = ctx
+        self.cog = cog
+        self.character_name = character_name
+        self.character_id = character_id
+
+    async def callback(self, interaction: discord.Interaction):
+        """Handles selecting an existing character"""
+        await interaction.response.defer()
+
+        # Query to get the player_id based on the player_name
+        query_player_id = """
+            SELECT player_id
+            FROM player
+            WHERE player_name = %s;
+        """
+        with self.cog.conn.cursor() as cursor:
+            cursor.execute(query_player_id, (self.ctx.author.name,))
+            player_result = cursor.fetchone()
+
+        player_id = player_result['player_id']
+        # Update the character selection process
+        success = self.select_new_character(
+            player_id, self.ctx.guild.id, self.character_id)
+
+        if success:
+            # Successfully updated the selected character
+            await interaction.followup.send(
+                f"You have selected {self.character_name}!", ephemeral=True
+            )
+        else:
+            # There was an error with the selection process
+            await interaction.followup.send(
+                "There was an error while selecting your character. Please try again.", ephemeral=True
+            )
+
+    def select_new_character(self, player_id, server_id, character_id):
+        """Handles the logic for updating the selected character in the database"""
+        with self.cog.conn.cursor() as cursor:
+            try:
+                # Unselect the previously selected character
+                cursor.execute(
+                    """UPDATE "character"
+                    SET selected_character = False
+                    WHERE player_id = %s AND server_id = %s""",
+                    (player_id, server_id)
+                )
+
+                # Select the new character
+                cursor.execute(
+                    """UPDATE "character"
+                    SET selected_character = True
+                    WHERE character_id = %s AND server_id = %s""",
+                    (character_id, server_id)
+                )
+            except Exception as e:
+                self.cog.conn.rollback()
+                print(e)
+                return False
+
+            self.cog.conn.commit()
+            return True
+
+
+
 
 class CharacterSelectButton(ui.Button):
-    """Button to select an existing character"""
+    """Button to fetch and display existing characters"""
 
     def __init__(self, ctx: commands.Context, cog: CharacterCreation):
         super().__init__(style=discord.ButtonStyle.blurple, label="Select Character")
@@ -110,29 +179,66 @@ class CharacterSelectButton(ui.Button):
         self.cog = cog
 
     async def callback(self, interaction: discord.Interaction):
-        """Handles selecting an existing character"""
+        """Handles displaying a list of characters for selection"""
         await interaction.response.defer()
 
-        # Query the database to fetch the player's existing characters
-        query = """
-        SELECT character_name FROM "character" WHERE player_id = (
-            SELECT player_id FROM player WHERE player_name = %s
-        ) AND server_id = %s
-        """
-        with self.cog.conn.cursor() as cursor:
-            cursor.execute(query, (self.ctx.author.name, self.ctx.guild.id))
-            result = cursor.fetchall()
+        result = self.get_characters()
 
-        if result:
-            # Present a list of characters for selection
-            character_names = [row['character_name'] for row in result]
-            await interaction.followup.send(
-                f"Select a character: {', '.join(character_names)}", ephemeral=True
-            )
-        else:
+        if not result:
             await interaction.followup.send(
                 "You don't have any characters yet. Please create one first!", ephemeral=True
             )
+            return
+        embeds = []
+        views = []
+
+        for character in result:
+            embed = discord.Embed(
+                title=character["character_name"],
+                description=f"{character['race_name']} {character['class_name']}",
+                color=discord.Color.green()
+            )
+            embed.add_field(name="Health", value=character["health"])
+            embed.add_field(name="Mana", value=character["mana"])
+            embed.add_field(name="Craft Skill",
+                            value=character["craft_skill"])
+            embed.add_field(name="Experience",
+                            value=character["experience"])
+
+            image_url = character.get("image_url")
+            if image_url:
+                embed.set_image(url=image_url)
+
+            view = ui.View()
+            view.add_item(CharacterSelectButtonItem(
+                ctx=self.ctx,
+                cog=self.cog,
+                character_name=character["character_name"],
+                character_id=character["character_id"]
+            ))
+
+            embeds.append(embed)
+            views.append(view)
+
+        # Send the embeds with the buttons
+        for embed, view in zip(embeds, views):
+            await interaction.followup.send(embed=embed, view=view, ephemeral=True)
+            
+    def get_characters(self) -> list[dict]:
+        """gets the character of a player"""
+        query = """
+            SELECT character_id, character_name, race_name, class_name, health, mana, craft_skill, experience, image_url
+            FROM "character"
+            JOIN race ON "character".race_id = race.race_id
+            JOIN class ON "character".class_id = class.class_id
+            WHERE "character".player_id = (SELECT player_id FROM player WHERE player_name = %s) 
+            AND "character".server_id = %s;
+        """
+        with self.cog.conn.cursor() as cursor:
+            cursor.execute(
+                query, (self.ctx.author.name, self.ctx.guild.id))
+            result = cursor.fetchall()
+            return result
 
 
 class RaceSelect(ui.View):
