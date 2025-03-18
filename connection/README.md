@@ -1,4 +1,5 @@
 # Postgres DB
+connect to the DB using the bash connect_db.sh
 sudo apt update
 sudo apt upgrade
 install postgres with `sudo apt install postgresql postgresql-contrib`
@@ -17,14 +18,13 @@ add `host    all             all             0.0.0.0/0            md5` to the en
 sudo service postgresql restart
 
 # bot
+Connect to the bot using the bash connect_bot.sh
 git clone this repository using `git clone https://github.com/CodeTechBen/pheonix_bot.git`
 cd pheonix_bot
 sudo apt-get update && sudo apt-get install -y python3-venv
-cd bot
-python -m pip install --upgrade pip
-sudo apt-get install -y libpq-dev
-sudo apt-get update
-sudo apt-get install -y python3.8 python3.8-venv python3.8-dev
-python3.8 -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
+cd bot
 pip install -r requirements
+cd ..
+bash /connection/start_bot.sh
