@@ -169,7 +169,6 @@ class CharacterSelectButtonItem(ui.Button):
 
 
 
-
 class CharacterSelectButton(ui.Button):
     """Button to fetch and display existing characters"""
 
@@ -258,6 +257,7 @@ class RaceSelect(ui.View):
 
 
 class RaceButton(ui.Button):
+    """A button to select the characters race"""
     def __init__(self, ctx: commands.Context, race_id: int, race_name: str, classes: dict[int, str], cog: CharacterCreation):
         super().__init__(style=discord.ButtonStyle.grey, label=race_name)
         self.ctx = ctx
