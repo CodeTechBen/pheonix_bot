@@ -90,7 +90,6 @@ CREATE TABLE "spells"(
     "spell_power" SMALLINT NOT NULL,
     "mana_cost" SMALLINT NOT NULL,
     "cooldown" SMALLINT NOT NULL DEFAULT 0,
-    "scaling_factor" DECIMAL(3,2) NOT NULL DEFAULT 1.00,
     "spell_type_id" INTEGER NOT NULL DEFAULT 1,
     "race_id" INTEGER NULL,
     "class_id" INTEGER NULL,
