@@ -635,13 +635,6 @@ class UserInputHelper:
             return None
 
 
-class SpellQuery:
-    """Handles queries on spells."""
-
-
-class SpellQuery:
-    """Handles queries on spells."""
-
 
 class SpellQuery:
     """Handles queries on spells."""
