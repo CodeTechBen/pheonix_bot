@@ -6,7 +6,7 @@ from bot.database_utils import DatabaseConnection
 import discord.ext
 
 
-class NewSpell(commands.Cog):
+class Spell(commands.Cog):
     """Defines spell-related commands"""
 
     def __init__(self, bot: commands.bot.Bot, conn: connection):
@@ -588,4 +588,4 @@ class MakeSpell(discord.ui.Button):
 async def setup(bot: commands.bot.Bot):
     """Sets up connection"""
     conn = DatabaseConnection.get_connection()
-    await bot.add_cog(NewSpell(bot, conn))
+    await bot.add_cog(Spell(bot, conn))
