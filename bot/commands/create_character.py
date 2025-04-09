@@ -317,9 +317,12 @@ class ClassButton(ui.Button):
             if player_result:
                 player_id = player_result['player_id']
             else:
-                # Handle case where player is not found (this shouldn't happen if the player is registered)
-                await interaction.followup.send("Player not found. Please try again later.", ephemeral=True)
-                return
+                cursor.execute(
+                    "INSERT INTO player (player_name, server_id) VALUES (%s, %s) RETURNING player_id",
+                    (self.ctx.author.name, self.ctx.guild.id)
+                )
+                player_id = cursor.fetchone()["player_id"]
+                self.cog.conn.commit()
 
         # Database insert logic
         self.create_character_in_db(
