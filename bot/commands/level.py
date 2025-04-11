@@ -67,8 +67,6 @@ class LevelUp(commands.Cog):
                 await ctx.send(f"⚠️ Could not find a selected character for {member.mention}.")
 
         except Exception as e:
-            print(member.name)
-            print(e)
             await ctx.send(f"❌ Failed to give XP: {str(e)}")
 
     def get_player_xp(self, ctx: commands.Context, conn: connection) -> dict[str: int]:
