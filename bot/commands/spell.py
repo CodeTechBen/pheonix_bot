@@ -505,7 +505,6 @@ class MakeSpell(discord.ui.Button):
                                        spell_power=self.spell_details.get('power', 0),
                                        mana_cost=self.spell_details.get('mana_cost', 0),
                                        cooldown=self.spell_details.get('cooldown', 0),
-                                       scaling_factor=1,
                                        spell_type_id=self.spell_details.get('spell_type_id'),
                                        element_id=self.spell_details.get('element_id'),
                                        spell_status_id=self.spell_details.get('spell_status_id', 1),
@@ -528,7 +527,6 @@ class MakeSpell(discord.ui.Button):
                        spell_power: int,
                        mana_cost: int,
                        cooldown: int,
-                       scaling_factor: float,
                        spell_type_id: int,
                        element_id: int,
                        spell_status_id: int,
@@ -542,9 +540,9 @@ class MakeSpell(discord.ui.Button):
             with conn.cursor() as cursor:
                 # Insert spell into spells table
                 spell_sql = """
-                INSERT INTO spells (spell_name, spell_description, spell_power, mana_cost, cooldown, scaling_factor, 
+                INSERT INTO spells (spell_name, spell_description, spell_power, mana_cost, cooldown, 
                                     spell_type_id, element_id, class_id, race_id, server_id) 
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) 
                 RETURNING spell_id;
                 """
                 spell_values = (spell_name,
@@ -552,7 +550,6 @@ class MakeSpell(discord.ui.Button):
                                 spell_power,
                                 mana_cost,
                                 cooldown,
-                                scaling_factor,
                                 spell_type_id,
                                 element_id,
                                 class_id,
