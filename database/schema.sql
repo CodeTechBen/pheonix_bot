@@ -130,6 +130,7 @@ CREATE TABLE "character"(
     "class_id" INTEGER NOT NULL,
     "location_id" INTEGER DEFAULT NULL,
     "experience" INTEGER NOT NULL DEFAULT 0,
+    "level" INTEGER NOT NULL DEFAULT 1,
     "health" SMALLINT NOT NULL DEFAULT 100,
     "mana" SMALLINT NOT NULL DEFAULT 100,
     "shards" BIGINT NOT NULL DEFAULT 100,

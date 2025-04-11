@@ -19,7 +19,9 @@ async def load_cogs():
     await bot.load_extension("bot.commands.location")
     await bot.load_extension("bot.commands.spell")
     await bot.load_extension("bot.commands.create_character")
+    await bot.load_extension("bot.commands.level")
     await bot.load_extension("bot.combat_test.combat")
+
     print('Loaded all cogs')
 
 
