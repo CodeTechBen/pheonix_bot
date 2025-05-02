@@ -134,12 +134,14 @@ class Character(commands.Cog):
 
         now = datetime.now()
         # Convert to minutes
-        time_since_last = (now - last_scavenged).total_seconds() / 60
-
+        if last_scavenged:
+            time_since_last = (now - last_scavenged).total_seconds() / 60
+        else:
+            time_since_last = 120
         max_shards = 120
         min_shards = time_since_last/2
 
-        if time_since_last < 1:
+        if time_since_last < 60:
             await ctx.send(f"Sorry {ctx.author.display_name}, you can't scavenge so soon! Wait at least 1 minute.")
             return
 
