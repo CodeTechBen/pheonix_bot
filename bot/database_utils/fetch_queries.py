@@ -322,7 +322,7 @@ class InventoryDatabase:
             cursor.execute("""
                 SELECT i.item_id, i.item_name, i.value, i.spell_id,
                     s.spell_name, s.spell_description, s.spell_power, 
-                    s.mana_cost, s.cooldown, s.scaling_factor, 
+                    s.mana_cost, s.cooldown, 
                     e.element_name, s.spell_type_id, 
                     s.race_id, s.class_id
                 FROM item i
@@ -587,7 +587,7 @@ class EmbedHelper:
                     f"\n✨ **Enchanted with:** {item.get('spell_name')}\n"
                     f"📖 *{item.get('spell_description')}*\n"
                     f"💥 Power: {item.get('spell_power')} | 🔥 Element: {item.get('element_name')}\n"
-                    f"⏳ Cooldown: {item.get('cooldown')} | 🎚️ Scaling: {item.get('scaling_factor')}"
+                    f"⏳ Cooldown: {item.get('cooldown')} | 🎚️ Scaling: 1"
                 )
 
             embed.add_field(
@@ -644,11 +644,10 @@ class SpellQuery:
                         spell_power: int,
                         mana: int,
                         cooldown: int,
-                        scaling_factor: float,
                         spell_status_chance: int,
                         spell_duration: int) -> int:
         """Base value calculation"""
-        base_difficulty = (max(spell_power, 10) * max(scaling_factor, 0.7)) / 5
+        base_difficulty = max(spell_power, 10) / 5
         print(f'base_difficulty = {base_difficulty}')
         # Cooldown penalty
         cooldown_penalty = max(0.5, 1.2 - (cooldown / 12))

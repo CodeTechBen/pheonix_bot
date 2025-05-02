@@ -167,7 +167,6 @@ class DataInserter:
                        spell_power: int,
                        mana_cost: int,
                        cooldown: int,
-                       scaling_factor: float,
                        spell_type_id: int,
                        element_id: int,
                        spell_status_id: int,
@@ -181,9 +180,9 @@ class DataInserter:
             with conn.cursor() as cursor:
                 # Insert spell into spells table
                 spell_sql = """
-                INSERT INTO spells (spell_name, spell_description, spell_power, mana_cost, cooldown, scaling_factor, 
+                INSERT INTO spells (spell_name, spell_description, spell_power, mana_cost, cooldown, 
                                     spell_type_id, element_id, class_id, race_id, server_id) 
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) 
                 RETURNING spell_id;
                 """
                 spell_values = (spell_name,
@@ -191,7 +190,6 @@ class DataInserter:
                                 spell_power,
                                 mana_cost,
                                 cooldown,
-                                scaling_factor,
                                 spell_type_id,
                                 element_id,
                                 class_id,

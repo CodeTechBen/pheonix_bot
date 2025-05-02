@@ -506,11 +506,6 @@ class Character(commands.Cog):
             return
 
 
-        scaling_factor = await UserInputHelper.get_input(
-            ctx, self.bot, "🎚️ Enter scaling factor (0.1 - 2.0):", float)
-        if scaling_factor is None:
-            return
-
         # Fetch spell types and elements
         spell_types = DatabaseMapper.get_spell_type_map(self.conn)
         if not spell_types:
@@ -547,7 +542,7 @@ class Character(commands.Cog):
             ctx, self.bot, r"% chance of status condition!", int, True)
         spell_duration = await UserInputHelper.get_input(
             ctx, self.bot, "Duration of status condition (in turns)", int)
-        spell_difficulty = SpellQuery.get_spell_difficulty(spell_power, 50, cooldown, scaling_factor, spell_status_chance, spell_duration)
+        spell_difficulty = SpellQuery.get_spell_difficulty(spell_power, 50, cooldown, spell_status_chance, spell_duration)
         craft_skill_dict = DatabaseMapper.get_craft_skill(self.conn, ctx.author.name)
         craft_skill = craft_skill_dict.get('craft_skill')
 
@@ -562,7 +557,7 @@ class Character(commands.Cog):
         try:
             spell_id = DataInserter.generate_spell(
                 self.conn, ctx.guild.id, spell_name, spell_description, spell_power,
-                mana_cost, cooldown, scaling_factor, spell_type_id, element_id,
+                mana_cost, cooldown, spell_type_id, element_id,
                 spell_status_id, spell_status_chance, spell_duration
             )
         except Exception as e:
