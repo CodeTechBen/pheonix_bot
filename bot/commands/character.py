@@ -132,32 +132,29 @@ class Character(commands.Cog):
         last_scavenged = DatabaseMapper.get_last_event(
             self.conn, ctx.author.name, 'Scavenge')
 
+        now = datetime.now()
+        # Convert to minutes
+        time_since_last = (now - last_scavenged).total_seconds() / 60
 
-        if last_scavenged:
-            now = datetime.now()
-            # Convert to minutes
-            time_since_last = (now - last_scavenged).total_seconds() / 60
+        max_shards = 120
+        min_shards = time_since_last/2
 
-            max_shards = 120
-            min_shards = time_since_last/2
+        if time_since_last < 1:
+            await ctx.send(f"Sorry {ctx.author.display_name}, you can't scavenge so soon! Wait at least 1 minute.")
+            return
 
-            if time_since_last < 1:
-                await ctx.send(f"Sorry {ctx.author.display_name}, you can't scavenge so soon! Wait at least 1 minute.")
-                return
+        # Random shards based on time waited
+        profit = randint(
+            int(round(min(max_shards/2, min_shards))),
+            int(round(min(int(time_since_last), max_shards)))
+        )
+        message = DataInserter.increase_wallet(
+            self.conn, ctx.author.name, profit)
+        DataInserter.update_last_event(
+            self.conn, ctx.author.name, 'Scavenge', now)
 
-            # Random shards based on time waited
-            profit = randint(
-                int(round(min(max_shards/2, min_shards))),
-                int(round(min(int(time_since_last), max_shards)))
-            )
-            message = DataInserter.increase_wallet(
-                self.conn, ctx.author.name, profit)
-            DataInserter.update_last_event(
-                self.conn, ctx.author.name, 'Scavenge', now)
+        await ctx.send(message)
 
-            await ctx.send(message)
-        else:
-            await ctx.send(f"{ctx.author.display_name}, you need to create a character first!")
 
     @commands.command()
     async def craft(self, ctx: commands.Context, item_name: str = None, item_value: int = None):
