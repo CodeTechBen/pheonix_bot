@@ -546,15 +546,15 @@ class ActionView(discord.ui.View):
         self.player = player
         self.targets = targets
 
-    @discord.ui.button(label="Attack", style=discord.ButtonStyle.red)
-    async def attack(self, interaction: discord.Interaction, button: discord.ui.Button):
-        """Attack action"""
-        if interaction.user != self.player.user:
-            await interaction.response.send_message("It's not your turn!", ephemeral=True)
-            return
+    # @discord.ui.button(label="Attack", style=discord.ButtonStyle.red)
+    # async def attack(self, interaction: discord.Interaction, button: discord.ui.Button):
+    #     """Attack action"""
+    #     if interaction.user != self.player.user:
+    #         await interaction.response.send_message("It's not your turn!", ephemeral=True)
+    #         return
 
-        await interaction.response.send_message(f"{self.player.mention} attacks!", ephemeral=False)
-        await self.cog.next_turn(self.ctx, self.battle_id)
+    #     await interaction.response.send_message(f"{self.player.mention} attacks!", ephemeral=False)
+    #     await self.cog.next_turn(self.ctx, self.battle_id)
 
     @discord.ui.button(label="Spell", style=discord.ButtonStyle.blurple)
     async def spell(self, interaction: discord.Interaction, button: discord.ui.Button):
